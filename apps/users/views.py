@@ -1,10 +1,12 @@
-from rest_framework import viewsets, status
+from rest_framework import status
+from rest_framework.viewsets import ViewSet
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.decorators import action
 
 from .models import User
-from .serializers import RegisterSerializer, LoginSerializer
-
+from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
+from django.shortcuts import get_object_or_404
     
 class RegisterView(APIView):
     def post(self, request):
@@ -32,3 +34,17 @@ class LoginView(APIView):
                    "message": "Login successful."
                 }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# 디버그 용. list, retrieve만 있어 CRUD 기능 포함 안됨. 
+class UserViewSet(ViewSet):
+    @action(detail=False, methods=['get'], url_path='all')
+    def list_users(self, request):
+        users = User.objects.all()
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data)
+    
+    def retrieve(self, request, pk=None):
+        user = get_object_or_404(User, pk=pk)
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
+
