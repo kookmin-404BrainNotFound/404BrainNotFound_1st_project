@@ -2,4 +2,4 @@ django
 djangorestframework
 
 python-dotenv
-
+httpx
