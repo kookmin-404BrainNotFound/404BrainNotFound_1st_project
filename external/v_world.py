@@ -1,10 +1,8 @@
 # v_world 사이트의 API 요청을 정리.
 
 from external.base import BaseClient
-from dotenv import load_dotenv
-import os
+from django.conf import settings
 
-V_WORLD_KEY = os.getenv("V_WORLD_KEY")
 
 # 주소 검색 API https://www.vworld.kr/dev/v4dv_search2_s001.do
 
@@ -18,7 +16,7 @@ class VWorldClient(BaseClient):
             "service": "search",
             "version": "2.0",
             "request": "search",
-            "key": V_WORLD_KEY,
+            "key": settings.VWORLD_API_KEY,
             "format": "json",
             "errorformat": "json",
             "size": size,
@@ -26,6 +24,6 @@ class VWorldClient(BaseClient):
             "query": query,
             "type": "PLACE",
         }
-        response = self.get('req/search/', params=params)
+        response = self.get('req/search', params=params)
         
         return response
