@@ -3,12 +3,19 @@ from rest_framework.viewsets import ViewSet
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 from .models import User
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
 from django.shortcuts import get_object_or_404
     
 class RegisterView(APIView):
+    @swagger_auto_schema(
+        operation_summary="회원 가입",
+        operation_description="회원가입 진행.",
+        request_body=RegisterSerializer,
+    )
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
@@ -18,6 +25,12 @@ class RegisterView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class LoginView(APIView):
+    @swagger_auto_schema(
+        operation_summary="로그인",
+        operation_description="로그인 진행 id를 반환.",
+        request_body=LoginSerializer,
+        tags=["user"],
+    )
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
