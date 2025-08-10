@@ -47,10 +47,8 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'drf_yasg',
-
     'apps.users',
     'apps.address',
-    'drf-yasg',
 ]
 
 MIDDLEWARE = [
