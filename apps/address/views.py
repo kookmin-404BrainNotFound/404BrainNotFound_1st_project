@@ -6,6 +6,7 @@ from drf_yasg import openapi
 from django.shortcuts import render
 
 from external.v_world import VWorldClient
+from external.seoul_data import DataSeoulClient
 from .serializers import VWorldSearchSerializer
 
 # Create your views here.
@@ -28,5 +29,11 @@ class VWorldSearchView(APIView):
         )
         client.close()
 
+        return Response(data)
+
+class GetPriceView(APIView):
+    def get(self, request):
+        client = DataSeoulClient()
+        data = client.getPrice()
         return Response(data)
 
