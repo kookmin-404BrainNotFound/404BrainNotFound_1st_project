@@ -1,6 +1,6 @@
 # buisiness.juso 사이트의 API 요청을 정리.
 
-from external.base import BaseClient
+from .base import BaseClient
 from django.conf import settings
 
 
