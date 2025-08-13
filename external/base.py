@@ -15,6 +15,7 @@ class BaseClient:
         try:
             res = self._client.get(path, params=params)
             res.raise_for_status()
+
             return res.json()
         except httpx.HTTPError as e:
             raise HTTPError(str(e)) from e
