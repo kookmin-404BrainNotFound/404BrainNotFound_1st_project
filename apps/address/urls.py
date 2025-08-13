@@ -1,8 +1,8 @@
 from django.urls import path
-from .views import VWorldSearchView, GetPriceView
+from .views import AddressSearchView, GetPriceView
 
 urlpatterns = [
-    path("search/", VWorldSearchView.as_view(), name="search"),
+    path("search/", AddressSearchView.as_view(), name="search"),
     path("price/", GetPriceView.as_view(), name="price"),
 ]
 

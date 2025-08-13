@@ -5,21 +5,20 @@ from drf_yasg import openapi
 
 from django.shortcuts import render
 
-from external.v_world import VWorldClient
 from external.business_juso import BusinessJusoClient
 from external.seoul_data import DataSeoulClient
-from .serializers import VWorldSearchSerializer
+from .serializers import AddressSearchSerializer
 
 # Create your views here.
 
-class VWorldSearchView(APIView):
+class AddressSearchView(APIView):
     @swagger_auto_schema(
         operation_summary="주소 검색",
         operation_description="장소를 검색합니다.",
-        query_serializer=VWorldSearchSerializer
+        query_serializer=AddressSearchSerializer
     )
     def get(self, request):
-        serializer = VWorldSearchSerializer(data=request.query_params)
+        serializer = AddressSearchSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
         client = BusinessJusoClient()
@@ -32,6 +31,7 @@ class VWorldSearchView(APIView):
 
         return Response(data)
 
+# 전월세가 가져오기
 class GetPriceView(APIView):
     def get(self, request):
         client = DataSeoulClient()
