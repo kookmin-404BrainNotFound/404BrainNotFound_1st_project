@@ -22,6 +22,7 @@ load_dotenv(BASE_DIR / ".env")
 
 VWORLD_API_KEY = os.getenv("V_WORLD_KEY")
 SEOUL_DATA_KEY = os.getenv("SEOUL_DATA_KEY")
+BUSINESS_JUSO_KEY = os.getenv("BUSINESS_JUSO_KEY")
 
 
 # Quick-start development settings - unsuitable for production

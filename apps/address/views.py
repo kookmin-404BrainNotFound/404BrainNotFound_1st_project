@@ -6,6 +6,7 @@ from drf_yasg import openapi
 from django.shortcuts import render
 
 from external.v_world import VWorldClient
+from external.business_juso import BusinessJusoClient
 from external.seoul_data import DataSeoulClient
 from .serializers import VWorldSearchSerializer
 
@@ -21,7 +22,7 @@ class VWorldSearchView(APIView):
         serializer = VWorldSearchSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
-        client = VWorldClient()
+        client = BusinessJusoClient()
         data = client.search_address(
             query = serializer.validated_data["q"],
             size=serializer.validated_data["size"],
