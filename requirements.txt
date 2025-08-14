@@ -4,3 +4,5 @@ drf-yasg
 
 python-dotenv
 httpx
+openai
+asyncio
