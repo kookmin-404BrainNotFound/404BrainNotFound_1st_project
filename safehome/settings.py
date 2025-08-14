@@ -22,6 +22,10 @@ load_dotenv(BASE_DIR / ".env")
 
 VWORLD_API_KEY = os.getenv("V_WORLD_KEY")
 
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # gpt api 키 가져오기
+
+ALLOWED_HOSTS = ["*"] # 개발 중 외부 접속 허용(로컬 테스트 편하게)
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -31,9 +35,6 @@ SECRET_KEY = 'django-insecure-*r1-ojihfw4vb39-e=e4)v--wr+-^bs!n1d81!k033vjd39how
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
-ALLOWED_HOSTS = []
-
 
 # Application definition
 
