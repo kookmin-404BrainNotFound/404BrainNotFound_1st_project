@@ -21,6 +21,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 VWORLD_API_KEY = os.getenv("V_WORLD_KEY")
+SEOUL_DATA_KEY = os.getenv("SEOUL_DATA_KEY")
+BUSINESS_JUSO_KEY = os.getenv("BUSINESS_JUSO_KEY")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # gpt api 키 가져오기
 
