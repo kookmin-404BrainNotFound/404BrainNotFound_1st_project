@@ -3,12 +3,13 @@ from openai import Timeout
 from dotenv import load_dotenv
 import os
 import asyncio
+from django.conf import settings
 
 try:
     load_dotenv()
 
     # OpenAI API 키 설정
-    CLIENT = AsyncOpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+    CLIENT = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
     # model
     MODEL = "gpt-4o"
@@ -73,16 +74,8 @@ async def ask_gpt(messages, model=MODEL, max_tokens = 32768):
     return result
     
 
-messages = [
-    {
-        "role": "user",
-        "content": "안녕"
-    }
-]
+async def test_gpt(question):
+    messages = [create_message("user", question)]
+    response = await ask_gpt(messages, model='gpt-4.1')
+    return response
 
-async def test_gpt():
-    summarize = await ask_gpt(messages, model='gpt-4.1')
-    print(summarize)
-
-
-asyncio.run(test_gpt())

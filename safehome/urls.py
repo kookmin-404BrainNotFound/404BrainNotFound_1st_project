@@ -43,6 +43,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('user/', include('apps.users.urls')),
     path('address/', include('apps.address.urls')),
+    path('gpt/', include('apps.gpt.urls')),
 ]
 
 

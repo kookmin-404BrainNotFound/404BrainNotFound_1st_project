@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'apps.users',
     'apps.address',
+    'apps.gpt',
 ]
 
 MIDDLEWARE = [
