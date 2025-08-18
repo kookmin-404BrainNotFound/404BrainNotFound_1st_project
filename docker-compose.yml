@@ -10,15 +10,17 @@ services:
       args:
         - DEV=true
     image: seokjun99/safehome:0.1
+    working_dir: /app
     # 호스트의 8000번 포트를 컨테이너의 8000번 포트로 매핑
     ports:
       - "8000:8000"
     volumes:
       # 현재 디렉토리의 app 디렉토리를 컨테이너의 /app 디렉토리와 공유
       - .:/app
+      - ./data:/app/data
     # 컨테이너가 시작될 때 실행할 명령어를 설정
     command: >
-      sh -c "python manage.py runserver 0.0.0.0:8000"
+      sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
 
 
 

@@ -2,10 +2,11 @@
 FROM python:3.9-alpine3.13
 
 # 이미지를 생성한 사람의 정보를 포함하는 레이블을 추가
-LABEL maintainer="seokcoding.com"
+LABEL maintainer="seokjun.com"
 
 # Python 출력 버퍼링을 비활성화
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
 # 로컬 파일 시스템에서 requirements.txt 파일을 /tmp 디렉토리로 복사
 COPY ./requirements.txt /tmp/requirements.txt
@@ -27,11 +28,13 @@ ARG DEV=false
 RUN python -m venv /py && \
     /py/bin/pip install --upgrade pip && \
     /py/bin/pip install -r /tmp/requirements.txt && \
-    rm -rf /tmp && \
-    adduser \
-        --disabled-password \
-        --no-create-home \
-        django-user
+    rm -rf /tmp
+
+RUN adduser -D -H -s /sbin/nologin django-user
+
+
+RUN mkdir -p /app/data \
+    && chown -R django-user:django-user /app /py
 
 # PATH 환경 변수를 설정하여 가상 환경에 설치된 pip를 사용할 수 있도록 한다.
 ENV PATH="/py/bin:$PATH"
