@@ -9,7 +9,7 @@ services:
       # Dockerfile에서 빌드 과정 중에 'DEV' 변수를 true로 설정
       args:
         - DEV=true
-    image: seokjun99/safehome:0.1
+    image: seokjun99/safehome:0.0.1
     # 호스트의 8000번 포트를 컨테이너의 8000번 포트로 매핑
     ports:
       - "8000:8000"
