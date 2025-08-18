@@ -14,7 +14,7 @@ services:
       - "8000:8000"
     volumes:
       # 현재 디렉토리의 app 디렉토리를 컨테이너의 /app 디렉토리와 공유
-      - ./app:/app
+      - .:/app
     # 컨테이너가 시작될 때 실행할 명령어를 설정
     command: >
       sh -c "python manage.py runserver 0.0.0.0:8000"
