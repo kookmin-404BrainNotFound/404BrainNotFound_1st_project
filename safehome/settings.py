@@ -26,6 +26,8 @@ BUSINESS_JUSO_KEY = os.getenv("BUSINESS_JUSO_KEY")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # gpt api 키 가져오기
 
+API_URL = os.getenv("API_URL")
+
 ALLOWED_HOSTS = ["*"] # 개발 중 외부 접속 허용(로컬 테스트 편하게)
 
 
