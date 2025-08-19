@@ -33,17 +33,20 @@ class AddressSearchView(APIView):
 
         return Response(data)
 
-# 전월세가 가져오기
+# 전월세가 가져오기 검색 API에서 파싱해서 다시 전달필요함.
 class GetPriceView(APIView):
     @swagger_auto_schema(
         operation_summary="전월세 가격 조회.",
-        operation_description="전월세 가격을 조회합니다.",
+        operation_description="전월세 가격을 도로명 주소로 조회합니다.",
         query_serializer=GetPriceSerializer,
     )
     def get(self, request):
         serializer = GetPriceSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         vd = serializer.validated_data
+
+        
+
 
         address = None
         if vd["admCd"]:

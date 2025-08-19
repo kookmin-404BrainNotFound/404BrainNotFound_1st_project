@@ -3,7 +3,6 @@
 from .base import BaseClient
 from django.conf import settings
 
-
 # 주소 검색 API https://www.vworld.kr/dev/v4dv_search2_s001.do
 
 class BusinessJusoClient(BaseClient):
