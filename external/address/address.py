@@ -59,12 +59,12 @@ class Address:
 
             # 주소 추가 정보 분리 진행.
             # 행정구역 코드. 앞 5자리는 자치구, 뒤 5자리는 법정동 코드.
-            admCd = (admCd or "").strip()
-            if len(admCd) != 10 or not admCd.isdigit():
-                raise ValueError(f"Invalid admCd: {admCd!r}")
+            self.admCd = (self.admCd or "").strip()
+            if len(self.admCd) != 10 or not self.admCd.isdigit():
+                raise ValueError(f"Invalid admCd: {self.admCd!r}")
             # 법정동 코드와 자치구 코드를 분리한다.
-            self.cggCd = admCd[:5]
-            self.stdgCd = admCd[5:]
+            self.cggCd = self.admCd[:5]
+            self.stdgCd = self.admCd[5:]
             # 대지, 산 여부 기본 API에서는 0이면 대지, 1이면 산. 전월세가에서는 1이 대지, 2가 산.
             self.mtYn = str(int(self.mtYn)+1)
             # 본번, 부번을 4자리로 맞춘다.

@@ -45,24 +45,14 @@ class GetPriceView(APIView):
         serializer.is_valid(raise_exception=True)
         vd = serializer.validated_data
 
+        # road address로 검색 진행, Parsing
+        address:Address = Address(roadAddr=vd["roadAddr"])
+        address.initialize(research=True)
+
+        if not address.is_valid():
+            return Response({"error": "유효하지 않은 주소입니다."}, status=400)
+        print(f"Address created: {address}")
         
-
-
-        address = None
-        if vd["admCd"]:
-            address = Address(
-                roadAddr=vd["roadAddr"],
-                bdNm=vd["bdNm"],
-                admCd=vd["admCd"],
-                sggNm=vd["sggNm"],
-                mtYn=vd["mtYn"],
-                lnbrMnnm=vd["lnbrMnnm"],
-                lnbrSlno=vd["lnbrSlno"],
-            )
-            print(f"Address created: {address}")
-            if not address.is_valid():
-                return Response({"detail": "Invalid address payload"}, status=400)
-
         client = DataSeoulClient()
         
         data = client.getPrice(
