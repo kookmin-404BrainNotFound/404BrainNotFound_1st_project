@@ -13,4 +13,7 @@ class GetPriceSerializer(serializers.Serializer):
     
     roadAddr = serializers.CharField(max_length=200, required=True)
 
-    
+
+class GetPropertyRegistrySerializer(serializers.Serializer):
+    roadAddr = serializers.CharField(max_length=200, required=True)
+    details = serializers.CharField(max_length=200, required=False, allow_blank=True)

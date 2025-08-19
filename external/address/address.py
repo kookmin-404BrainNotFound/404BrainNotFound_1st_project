@@ -11,6 +11,7 @@ class Address:
         mtYn:str = "0",
         lnbrMnnm:str = "",
         lnbrSlno:str = "",
+        details:str = ""
         ):
         self.valid = True
         self.roadAddr = roadAddr or ""
@@ -30,6 +31,9 @@ class Address:
         self.lnbrMnnm = lnbrMnnm
         # 부번
         self.lnbrSlno = lnbrSlno
+
+        # 상세 주소
+        self.details = details
         
 
     # 도로명 주소로 검색해서 추가 정보를 알아내 저장한다.
@@ -93,3 +97,7 @@ class Address:
 
     def __str__(self):
         return str(self.as_dict())
+    
+    def getFullAddr(self):
+        return str(self.roadAddr + " " + self.details)
+    

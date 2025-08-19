@@ -4,12 +4,15 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from django.shortcuts import render
+from io import BytesIO
+from django.http import FileResponse
 
 from external.client.business_juso import BusinessJusoClient
 from external.client.seoul_data import DataSeoulClient
+from external.client.a_pick import APickClient
 
 from external.address.address import Address
-from .serializers import AddressSearchSerializer, GetPriceSerializer
+from .serializers import AddressSearchSerializer, GetPriceSerializer, GetPropertyRegistrySerializer
 
 # Create your views here.
 
@@ -63,4 +66,50 @@ class GetPriceView(APIView):
         client.close()
         
         return Response(data)
+    
+# 등기부등본 가져오기.
+class GetPropertyRegistryView(APIView):
+    @swagger_auto_schema(
+        operation_summary="등기부등본 조회",
+        operation_description="도로명 주소로 등기부등본을 조회합니다.",
+        query_serializer=GetPropertyRegistrySerializer,
+        produces=["application/pdf"],
+        responses={200: openapi.Response(
+            description="PDF file",
+            schema=openapi.Schema(type=openapi.TYPE_STRING, format="binary")
+        )},
+    )
+    def get(self, request):
+        serializer = GetPropertyRegistrySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        vd = serializer.validated_data
 
+        client = APickClient()
+        try:
+            full_addr = (vd["roadAddr"] + " " + vd.get("details", "")).strip()
+            print(full_addr)
+            registry_info = client.view_property_registry(full_addr=full_addr)
+            
+            success = registry_info.get("data").get("success", 0)
+            if success != 1:
+                return Response(
+                    {"detail": "등기부 생성이 완료되지 않았습니다.", "data": registry_info.get("data")},
+                    status=409
+                )
+
+            ic_id = int(registry_info.get("data", {}).get("ic_id") or 0)
+            print(f"ic_id: {ic_id}")
+            if not ic_id:
+                return Response({"detail": "ic_id를 찾을 수 없습니다.", "data": registry_info}, status=400)
+            
+            pdf_bytes = client.download_property_registry(ic_id=ic_id, stream=False)
+            return FileResponse(
+                BytesIO(pdf_bytes),
+                as_attachment=True,                # 다운로드 강제 (뷰어로 열고 싶으면 False)
+                filename="output.pdf",             # 원하면 동적으로 바꾸세요
+                content_type="application/pdf",
+            )
+
+        finally:
+            client.close()
+            
