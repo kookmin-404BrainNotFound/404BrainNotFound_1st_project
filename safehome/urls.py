@@ -10,13 +10,14 @@ Function views
 Class-based views
     1. Add an import:  from other_app.views import Home
     2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
+Including anotherfrom django.conf.urls.static import static URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
+from django.conf.urls.static import static
 
 from rest_framework import routers
 from rest_framework import permissions
@@ -44,6 +45,7 @@ urlpatterns = [
     path('user/', include('apps.users.urls')),
     path('address/', include('apps.address.urls')),
     path('gpt/', include('apps.gpt.urls')),
+    path('api/', include('apps.image.urls')),
 ]
 
 
@@ -52,3 +54,7 @@ urlpatterns += [
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]
+
+# 개발환경에서 미디어 파일 제공
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.address',
     'apps.gpt',
+    'apps.image',
 ]
 
 MIDDLEWARE = [
@@ -138,3 +139,21 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+# 이미지/업로드 파일 설정
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'   # 프로젝트 루트/media 에 저장
+
+# (선택) DRF 기본 설정
+REST_FRAMEWORK = {
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',  # 파일 업로드에 필요
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
+}
