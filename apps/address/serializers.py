@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from external.address.address import Address
 from datetime import datetime
 
 class AddressSearchSerializer(serializers.Serializer):
@@ -17,3 +16,9 @@ class GetPriceSerializer(serializers.Serializer):
 class GetPropertyRegistrySerializer(serializers.Serializer):
     roadAddr = serializers.CharField(max_length=200, required=True)
     details = serializers.CharField(max_length=200, required=False, allow_blank=True)
+
+
+class GetBuildingInfoSerializer(serializers.Serializer):
+    roadAddr = serializers.CharField(max_length=200, required=True)
+    
+    

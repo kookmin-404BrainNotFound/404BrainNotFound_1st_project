@@ -1,21 +1,36 @@
+from __future__ import annotations
 from typing import Any, Dict, Optional
-import httpx, json
+import httpx, json, certifi, ssl
+
 
 class HTTPError(Exception):
     pass
 
 # Client를 만드는 기본 클래스 구조.
 class BaseClient:
-    def __init__(self, base_url:str, timeout: float = 5.0):
+    def __init__(self, base_url:str, timeout: float = 20.0):
         self.base_url = base_url
         self.timeout = timeout
-        self._client = httpx.Client(base_url=base_url, timeout=timeout)
+        
+        ctx = ssl.create_default_context(cafile=certifi.where())
+        try:
+            ctx.set_ciphers("DEFAULT:@SECLEVEL=1")
+        except ssl.SSLError:
+            pass
+        
+        self._client = httpx.Client(
+            base_url=base_url,
+            timeout=timeout,
+            http2=False,
+            verify=ctx,
+            trust_env=False,
+            follow_redirects=True,
+        )
 
     def get(self, path:str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         try:
             res = self._client.get(path, params=params)
             res.raise_for_status()
-
             return res.json()
         except httpx.HTTPError as e:
             raise HTTPError(str(e)) from e
