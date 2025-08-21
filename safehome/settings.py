@@ -24,6 +24,10 @@ VWORLD_API_KEY = os.getenv("V_WORLD_KEY")
 SEOUL_DATA_KEY = os.getenv("SEOUL_DATA_KEY")
 BUSINESS_JUSO_KEY = os.getenv("BUSINESS_JUSO_KEY")
 
+
+AIR_QUALITY_KEY = os.getenv("AIR_QUALITY_KEY") # 대기질 api 키 가져오기
+
+
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # gpt api 키 가져오기
 
 API_URL = os.getenv("API_URL")
