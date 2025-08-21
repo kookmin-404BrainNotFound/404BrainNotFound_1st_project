@@ -44,6 +44,7 @@ urlpatterns = [
     path('user/', include('apps.users.urls')),
     path('address/', include('apps.address.urls')),
     path('gpt/', include('apps.gpt.urls')),
+    path('report/', include('apps.report.urls')),
 ]
 
 

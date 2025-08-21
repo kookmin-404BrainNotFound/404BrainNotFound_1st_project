@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.address',
     'apps.gpt',
+    'apps.report',
 ]
 
 MIDDLEWARE = [

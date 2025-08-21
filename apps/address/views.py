@@ -137,7 +137,6 @@ class GetBuildingInfoView(APIView):
         info = BuildingInfo()
         info.makeInfo(address)
         
-        
         return Response(info.getInfo())
     
     
