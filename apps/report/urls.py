@@ -1,8 +1,8 @@
-from .views import StartReportView, DangerCheckListView
+from .views import StartReportView, SavePriceView
 from django.urls import path
 
 urlpatterns = [
     path('startReport/', StartReportView.as_view(), name='start_report'),
-    path('danger-checklist/<int:report_run_id>/', DangerCheckListView.as_view(), name='danger_checklist'),
+    path('savePrice/', SavePriceView.as_view(), name='save_price'),
 ]
 

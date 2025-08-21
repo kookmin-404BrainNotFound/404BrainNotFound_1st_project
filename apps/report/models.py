@@ -14,13 +14,4 @@ class ReportRun(models.Model):
         ('completed', 'Completed'),
         ('failed', 'Failed')
     ], default='running')
-
-# 위험도 체크리스트
-class DangerCheckList(models.Model):
-    report_run = models.ForeignKey(ReportRun, on_delete=models.CASCADE, related_name='danger_checklists')
-    description = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.name
-
+    
