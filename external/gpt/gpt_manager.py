@@ -1,4 +1,4 @@
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, OpenAI
 from openai import Timeout
 from dotenv import load_dotenv
 import os
@@ -9,7 +9,7 @@ try:
     load_dotenv()
 
     # OpenAI API 키 설정
-    CLIENT = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+    CLIENT = OpenAI(api_key=settings.OPENAI_API_KEY)
 
     # model
     MODEL = "gpt-4o"
@@ -26,7 +26,7 @@ def create_message(role: str, content: str):
 
 
 # 특정 질문을 gpt에 물어본다. 실패하면 False를 리턴한다.
-async def ask_gpt(messages, model=MODEL, max_tokens = 32768):
+def ask_gpt(messages, model=MODEL, max_tokens = 32768):
     retries = 6
     delay = 1
 
@@ -66,7 +66,7 @@ async def ask_gpt(messages, model=MODEL, max_tokens = 32768):
             "presence_penalty": 0.0,
         }
 
-    response = await CLIENT.chat.completions.create(
+    response = CLIENT.chat.completions.create(
         **params,
     )
 
@@ -74,8 +74,8 @@ async def ask_gpt(messages, model=MODEL, max_tokens = 32768):
     return result
     
 
-async def test_gpt(question):
+def test_gpt(question):
     messages = [create_message("user", question)]
-    response = await ask_gpt(messages, model='gpt-4.1')
+    response = ask_gpt(messages, model='gpt-4.1')
     return response
 

@@ -163,6 +163,6 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.MultiPartParser',  # 파일 업로드에 필요
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+        'rest_framework.permissions.AllowAny',
     ],
 }

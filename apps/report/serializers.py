@@ -13,5 +13,5 @@ class SavePriceSerializer(serializers.Serializer):
 class MakeReportSerializer(serializers.Serializer):
     report_run_id = serializers.IntegerField()
     startYear = serializers.IntegerField(required=False, allow_null=True, default=2024)
-    
+    is_property_registry = serializers.BooleanField(required=False, allow_null=True, default=False)
 

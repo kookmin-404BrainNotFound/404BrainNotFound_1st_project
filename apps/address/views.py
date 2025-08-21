@@ -11,6 +11,7 @@ from external.client.business_juso import BusinessJusoClient
 from external.client.seoul_data import DataSeoulClient
 from external.client.a_pick import APickClient
 from external.address.building_info import BuildingInfo
+from external.address.property_registry import get_property_registry
 
 from external.address.address import Address
 from .serializers import AddressSearchSerializer, GetPriceSerializer, GetPropertyRegistrySerializer, GetBuildingInfoSerializer
@@ -85,34 +86,14 @@ class GetPropertyRegistryView(APIView):
         serializer.is_valid(raise_exception=True)
         vd = serializer.validated_data
 
-        client = APickClient()
-        try:
-            full_addr = (vd["roadAddr"] + " " + vd.get("details", "")).strip()
-            print(full_addr)
-            registry_info = client.view_property_registry(full_addr=full_addr)
-            
-            success = registry_info.get("data").get("success", 0)
-            if success != 1:
-                return Response(
-                    {"detail": "등기부 생성이 완료되지 않았습니다.", "data": registry_info.get("data")},
-                    status=409
-                )
-
-            ic_id = int(registry_info.get("data", {}).get("ic_id") or 0)
-            print(f"ic_id: {ic_id}")
-            if not ic_id:
-                return Response({"detail": "ic_id를 찾을 수 없습니다.", "data": registry_info}, status=400)
-            
-            pdf_bytes = client.download_property_registry(ic_id=ic_id, stream=False)
-            return FileResponse(
-                BytesIO(pdf_bytes),
-                as_attachment=True,                # 다운로드 강제 (뷰어로 열고 싶으면 False)
-                filename="output.pdf",             # 원하면 동적으로 바꾸세요
-                content_type="application/pdf",
-            )
-
-        finally:
-            client.close()
+        full_addr = vd["roadAddr"] + " " + vd.get("details", "")
+        pdf_bytes = get_property_registry(full_addr=full_addr)
+        return FileResponse(
+            BytesIO(pdf_bytes),
+            as_attachment=True,                # 다운로드 강제 (뷰어로 열고 싶으면 False)
+            filename="output.pdf",             # 원하면 동적으로 바꾸세요
+            content_type="application/pdf",
+        )
             
 # 전월세가 가져오기 검색 API에서 파싱해서 다시 전달필요함.
 class GetBuildingInfoView(APIView):

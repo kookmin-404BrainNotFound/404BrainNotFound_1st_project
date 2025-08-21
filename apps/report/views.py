@@ -10,10 +10,14 @@ from .models import ReportRun
 from .serializers import ReportRunSerializer, SavePriceSerializer, MakeReportSerializer
 
 from external.address.building_info import BuildingInfo
-from external.client.a_pick import APickClient
 from external.address.price import get_avg_price
 from external.address.address import Address
+from external.address.property_registry import get_property_registry
 from apps.address.models import TempAddress, TempPrice
+
+from external.gpt.gpt_manager import *
+
+import json
 
 # Create your views here.
 
@@ -131,10 +135,58 @@ class MakeReportView(APIView):
             startYear=vd.get("startYear", 2024),
             address=address
         )
-        # 등기부등본분석
-        
-        return Response({
-            "report_run_id": report_run.id,
+        # user의 전월세가
+        user_price_info = {
+            "security_deposit": report_run.temp_prices.security_deposit,
+            "monthly_rent": report_run.temp_prices.monthly_rent
+        }
+
+        # 파일을 제외한 dict 
+        infos = {
             "building_info": building_info,
-            "price_info": price_info
-        })
+            "user_price_info": user_price_info,
+            "price_info": price_info,
+        }
+        # 등기부등본
+        pdf_data = None
+        if vd.get("is_property_registry", False):
+            try:
+                pdf_data = get_property_registry(full_addr=address.roadAddr + " " + address.details)
+            except Exception as e:
+                pdf_data = None
+        
+        # gpt에 물어본다. 처음에는 파일을 제외하고, 파일까지 첨부한 후 물어본다.
+        messages = []
+        # system
+        system_str = """
+        너는 전세사기를 분석하는 전문가야.
+        너는 사용자가 제공하는 데이터를 기반으로 위험도 점수, 적합도 점수와 함께
+        위험도 레포트, 적합도 레포트를 작성해야 해.
+        오직 Json형식으로만 응답하고 이외의 불필요한 텍스트는 모두 제거해줘.
+        형식은 다음과 같아.
+        {
+            "danger_score": "82",
+            "danger_description": "",
+            "fit_score": "70",
+            "fit_description": ""
+        }
+        
+        각 description은 약 3000자 정도로, 마크다운 문법으로 주고, 이모티콘과 아이콘은 많이 사용하지는 말아줘.
+
+        너가 받을 데이터는 사용자의 보증금과 월세야. 월세가 0이면 전세라고 보면 되는거고. 그게 아니라면 월세라고 판단해.
+        그리고 너는 avg로 시작하는 평균 보증금과 월세를 받을 수 있어. 이걸 보고, 전세사기 즉 깡통 전세인지, 월세가 부당한지 등을 판단해.
+        그리고 건축물 대장(building_info)에서 문제가 되는 부분이 있으면 언급하고 딱히 문제가 없다면 길게 얘기하지는 마.
+        그리고 등기부등본으로 pdf 파일을 받을거야. 그 pdf 파일에서 주의할 점, 문제가 되는 점은 없는지 평가해.
+
+        위 내용들을 종합적으로 평가해서 위험도 점수와 description을 작성하면 돼.
+
+        적합도는 일단 3000자를 채우지 말고, 점수도 그냥 0으로 설정해. 나중에 내가 다시 이 부분에 대해 설명해줄거야.
+        그리고 pdf 등이 누락되면 반드시 설명해줘.
+        """
+        messages.append(create_message("system", system_str))
+        messages.append(create_message("user", json.dumps(infos)))
+        messages.append(create_message("user", "분석해줘."))
+
+        result = ask_gpt(messages)
+        print(result)
+        return Response(result)
