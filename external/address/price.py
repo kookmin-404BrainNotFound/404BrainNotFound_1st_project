@@ -1,10 +1,10 @@
 # 전월세가 분석
 from external.client.seoul_data import DataSeoulClient
-from external.address.address import Address
+from external.address.address_manager import AddressManager
 from datetime import datetime
 
 # startYear부터 현재까지 평균 전월세가를 구해서 dict로 반환한다.
-def get_avg_price(startYear, address:Address):
+def get_avg_price(startYear, address_manager:AddressManager):
     client = DataSeoulClient()
     current_year = datetime.now().year
 
@@ -18,10 +18,11 @@ def get_avg_price(startYear, address:Address):
     month_count = 0
 
     for year in range(startYear, current_year + 1):
-        response = client.getPrice(year=year, address=address)
+        response = client.getPrice(year=year, address=address_manager)
         rows = response.get("tbLnOpendataRentV").get("row", [])
 
         for row in rows:
+            print(row)
             # 전세/월세
             rent_se = row.get("RENT_SE")
             grfe = int(row.get("GRFE"))

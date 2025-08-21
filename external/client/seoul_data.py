@@ -1,7 +1,7 @@
 from django.conf import settings
 from .base import BaseClient, HTTPError
 
-from external.address.address import Address
+from external.address.address_manager import AddressManager
 
 from typing import Any, Dict, Optional
 from urllib.parse import quote
@@ -25,7 +25,7 @@ class DataSeoulClient(BaseClient):
         page:int = 1,
         year:int = None,
         # 자치구 코드, 법정동코드, 지번구분, 본번 부번 등 생각.
-        address:Address = None,
+        address:AddressManager = None,
         ):
         # parameter가 아닌 url로 값을 넣는 형태임. 먼저 필수 값들부터 넣는다.
         path = f"/{settings.SEOUL_DATA_KEY}/json/tbLnOpendataRentV/{page}/{size}/"

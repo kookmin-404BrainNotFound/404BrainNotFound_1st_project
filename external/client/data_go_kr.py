@@ -1,12 +1,12 @@
 # buisiness.juso 사이트의 API 요청을 정리.
-from external.address.address import Address
+from external.address.address_manager import AddressManager
 
 from .base import BaseClient
 from django.conf import settings
 
 # 건축물대장 정보 조회 등이 포함됨. address 객체는 이미 search가 끝난 상태라고 가정한다.(initialize.)
 class DataGoKrClient(BaseClient):
-    def __init__(self, address:Address = None):
+    def __init__(self, address:AddressManager = None):
         super().__init__(base_url='https://apis.data.go.kr/')
         self.address = address
         self.basic_params = {

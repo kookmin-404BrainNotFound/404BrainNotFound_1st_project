@@ -10,10 +10,10 @@ from django.http import FileResponse
 from external.client.business_juso import BusinessJusoClient
 from external.client.seoul_data import DataSeoulClient
 from external.client.a_pick import APickClient
-from external.address.building_info import BuildingInfo
+from external.address.building_info import BuildingInfoManager
 from external.address.property_registry import get_property_registry
 
-from external.address.address import Address
+from external.address.address_manager import AddressManager
 from .serializers import AddressSearchSerializer, GetPriceSerializer, GetPropertyRegistrySerializer, GetBuildingInfoSerializer
 
 # Create your views here.
@@ -51,7 +51,7 @@ class GetPriceView(APIView):
         vd = serializer.validated_data
 
         # road address로 검색 진행, Parsing
-        address:Address = Address(roadAddr=vd["roadAddr"])
+        address:AddressManager = AddressManager(roadAddr=vd["roadAddr"])
         address.initialize(research=True)
 
         if not address.is_valid():
@@ -94,8 +94,8 @@ class GetPropertyRegistryView(APIView):
             filename="output.pdf",             # 원하면 동적으로 바꾸세요
             content_type="application/pdf",
         )
-            
-# 전월세가 가져오기 검색 API에서 파싱해서 다시 전달필요함.
+
+# 건물 정보 가져오기.
 class GetBuildingInfoView(APIView):
     @swagger_auto_schema(
         operation_summary="건물 정보 확인.",
@@ -108,16 +108,15 @@ class GetBuildingInfoView(APIView):
         vd = serializer.validated_data
 
         # road address로 검색 진행, Parsing
-        address:Address = Address(roadAddr=vd["roadAddr"])
+        address:AddressManager = AddressManager(roadAddr=vd["roadAddr"])
         address.initialize(research=True)
 
         if not address.is_valid():
             return Response({"error": "유효하지 않은 주소입니다."}, status=400)
         print(f"Address created: {address}")
         
-        info = BuildingInfo()
-        info.makeInfo(address)
+        info = BuildingInfoManager().makeInfo(address)
         
-        return Response(info.getInfo())
+        return Response(info)
     
     

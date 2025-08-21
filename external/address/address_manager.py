@@ -1,7 +1,7 @@
 from external.client.business_juso import BusinessJusoClient
 
 # 주소체계 관리 Class
-class Address:
+class AddressManager:
     def __init__(
         self,
         roadAddr:str,

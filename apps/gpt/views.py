@@ -19,7 +19,6 @@ class GptTestView(APIView):
         serializer = GptTestSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         question = serializer.validated_data["question"]
-        print(question)
-        response = asyncio.run(test_gpt(question))
+        response = test_gpt(question)
         return Response({"response": response})
     

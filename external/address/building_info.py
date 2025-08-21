@@ -1,12 +1,12 @@
-from external.address.address import Address
+from external.address.address_manager import AddressManager
 from external.client.data_go_kr import DataGoKrClient
 
 # building의 정보를 정리한다.
-class BuildingInfo:
+class BuildingInfoManager:
     def __init__(self):
         self.info = {}
         
-    def makeInfo(self, address:Address):
+    def makeInfo(self, address:AddressManager):
         client = DataGoKrClient(address)
         
         # 건축물대장 총괄표제부 조회
@@ -52,7 +52,3 @@ class BuildingInfo:
         
         client.close()
         return self.info
-                
-    def getInfo(self):
-        return self.info
-

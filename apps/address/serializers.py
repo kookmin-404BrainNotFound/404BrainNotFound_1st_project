@@ -1,5 +1,8 @@
 from rest_framework import serializers
 from datetime import datetime
+from typing import Optional
+from .models import BuildingInfo
+
 
 class AddressSearchSerializer(serializers.Serializer):
     q = serializers.CharField(max_length=200)
@@ -20,5 +23,3 @@ class GetPropertyRegistrySerializer(serializers.Serializer):
 
 class GetBuildingInfoSerializer(serializers.Serializer):
     roadAddr = serializers.CharField(max_length=200, required=True)
-    
-    

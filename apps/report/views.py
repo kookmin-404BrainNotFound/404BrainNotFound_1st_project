@@ -6,14 +6,14 @@ from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from .models import ReportRun
-from .serializers import ReportRunSerializer, SavePriceSerializer, MakeReportSerializer
+from .models import Report
+from .serializers import StartReportSerializer, SaveUserPriceSerializer, MakeReportSerializer, MakeAvgPriceReportSerializer
 
-from external.address.building_info import BuildingInfo
+from external.address.building_info import BuildingInfoManager
 from external.address.price import get_avg_price
-from external.address.address import Address
+from external.address.address_manager import AddressManager
 from external.address.property_registry import get_property_registry
-from apps.address.models import TempAddress, TempPrice
+from apps.address.models import Address, UserPrice, BuildingInfo, AvgPrice
 
 from external.gpt.gpt_manager import *
 
@@ -21,124 +21,169 @@ import json
 
 # Create your views here.
 
+# 보고서 작성을 시작한다.
 class StartReportView(APIView):
     @swagger_auto_schema(
         operation_summary="보고서 시작",
         operation_description="새로운 보고서를 시작합니다.",
-        query_serializer=ReportRunSerializer
+        query_serializer=StartReportSerializer
     )
     def post(self, request):
-        serializer = ReportRunSerializer(data=request.query_params)
+        serializer = StartReportSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
-        report_run = ReportRun.objects.create()
+        # 새 report 객체 생성.
+        report = Report.objects.create()
 
         # 주소 검색 및 Address 객체 만들기.
         vd = serializer.validated_data
-        address = Address(roadAddr=vd["road_address"])
-        address.initialize(research=True)
-        if not address.is_valid():
+        address_manager = AddressManager(roadAddr=vd["road_address"])
+        address_manager.initialize(research=True)
+        if not address_manager.is_valid():
             return Response({"error": "유효하지 않은 주소입니다."}, status=status.HTTP_400_BAD_REQUEST)
-        address.details = vd.get("details", "")
+        address_manager.details = vd.get("details", "")
 
-         # 모델 필드명에 맞춰 저장 (road_addr)
-        temp_address = TempAddress.objects.create(
-            report_run=report_run,            
-            road_address=address.roadAddr,
-            bd_nm=address.bdNm,
-            adm_cd=address.admCd,
-            sgg_nm=address.sggNm,
-            mt_yn=address.mtYn,
-            lnbr_mnnm=address.lnbrMnnm,
-            lnbr_slno=address.lnbrSlno,
-            details=address.details,
+        # 모델 필드명에 맞춰 저장 (road_addr)
+        address = Address.objects.create(
+            report=report,            
+            road_address=address_manager.roadAddr,
+            bd_nm=address_manager.bdNm,
+            adm_cd=address_manager.admCd,
+            sgg_nm=address_manager.sggNm,
+            mt_yn=address_manager.mtYn,
+            lnbr_mnnm=address_manager.lnbrMnnm,
+            lnbr_slno=address_manager.lnbrSlno,
+            details=address_manager.details,
         )
 
         # 응답은 원시 타입/딕셔너리만
         return Response(
             {
-                "report_run_id": report_run.id,
-                "temp_address_id": temp_address.id,
-                "address": {
-                    "road_addr": address.roadAddr,
-                    "bd_nm": address.bdNm,
-                    "adm_cd": address.admCd,
-                    "sgg_nm": address.sggNm,
-                    "mt_yn": address.mtYn,
-                    "lnbr_mnnm": address.lnbrMnnm,
-                    "lnbr_slno": address.lnbrSlno,
-                    "details": address.details,
-                },
+                "report_id": report.id,
+                "address_id": address.id,
+                "address": address_manager.as_dict(),
             },
             status=status.HTTP_201_CREATED,
         )
     
-# 전월세가 임시 저장.
-class SavePriceView(APIView):
+# 전월세가저장.
+class SaveUserPriceView(APIView):
     @swagger_auto_schema(
         operation_summary="전월세가 저장",
         operation_description="전월세가 정보를 저장합니다.",
-        query_serializer=SavePriceSerializer
+        query_serializer=SaveUserPriceSerializer
     )
-    def post(self, request):
-        serializer = SavePriceSerializer(data=request.query_params)
+    def post(self, request, report_id):
+        serializer = SaveUserPriceSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
-        report_run_id = serializer.validated_data["report_run_id"]
         try:
-            report_run = ReportRun.objects.get(id=report_run_id)
-        except ReportRun.DoesNotExist:
-            return Response({'error': 'ReportRun not found'}, status=status.HTTP_404_NOT_FOUND)
+            report = Report.objects.get(id=report_id)
+        except Report.DoesNotExist:
+            return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
 
         # 가격 저장
-        temp_price = TempPrice.objects.create(
-            report_run=report_run,
+        user_price = UserPrice.objects.create(
+            report=report,
             security_deposit=serializer.validated_data.get("security_deposit"),
-            monthly_rent=serializer.validated_data.get("monthly_rent")
+            monthly_rent=serializer.validated_data.get("monthly_rent"),
+            is_year_rent=serializer.validated_data.get("is_year_rent"),
         )
 
-        return Response({"temp_price_id": temp_price.id}, status=status.HTTP_201_CREATED)
+        return Response({"user_price_id": user_price.id}, status=status.HTTP_201_CREATED)
 
-class MakeReportView(APIView):
+# 건축물대장부 가져오기.
+class MakeBuildingInfoReportView(APIView):
+    def post(self, request, report_id):
+        try:
+            report = Report.objects.get(id=report_id)
+        except Report.DoesNotExist:
+            return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # 주소 가져오기.
+        address_manager:AddressManager = report.address.to_address_manager()
+        address_manager.initialize(research=False)
+        
+        # 건축물대장부
+        info = BuildingInfoManager().makeInfo(address_manager)
+        building_info = BuildingInfo.objects.create(
+            report=report,
+            description=str(info),
+        )
+        
+        return Response({"building_info_id": building_info.id, "building_info": str(info)}, status=status.HTTP_201_CREATED)
+
+# 전월세가 평균 계산하기.
+class MakeAvgPriceReportView(APIView):
+    @swagger_auto_schema(
+        operation_summary="전월세가 평균계산",
+        operation_description="전월세가 평균을 계산해 저장합니다.",
+        query_serializer=MakeAvgPriceReportSerializer
+    )
+    def post(self, request, report_id):
+        serializer = MakeAvgPriceReportSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        vd = serializer.validated_data
+        try:
+            report = Report.objects.get(id=report_id)
+        except Report.DoesNotExist:
+            return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # 주소 가져오기.
+        address_manager:AddressManager = report.address.to_address_manager()
+        address_manager.initialize(research=False)
+        
+        # 전월세가분석
+        price_info = get_avg_price(
+            startYear=vd.get("start_year", 2024),
+            address_manager=address_manager
+        )
+        
+        # 저장하기
+        avg_price = AvgPrice.objects.create(
+            report=report,
+            avg_year_price=price_info["avg_year_price"],
+            avg_month_security_price=price_info["avg_month_security_price"],
+            avg_month_rent=price_info["avg_month_rent"],
+        )
+        
+        return Response({"avg_price_id": avg_price.id, "price_info": str(price_info)})
+
+# 마지막 레포트 뷰. gpt에게 맡기는 역할만 수행.
+class MakeReportFinalView(APIView):
     @swagger_auto_schema(
         operation_summary="보고서 생성",
         operation_description="보고서를 생성합니다.",
         query_serializer=MakeReportSerializer
     )
-    def post(self, request):
+    def post(self, request, report_id):
         serializer = MakeReportSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         vd = serializer.validated_data
-        report_run_id = vd["report_run_id"]
         try:
-            report_run = ReportRun.objects.get(id=report_run_id)
-        except ReportRun.DoesNotExist:
+            report = Report.objects.get(id=report_id)
+        except Report.DoesNotExist:
             return Response({'error': 'ReportRun not found'}, status=status.HTTP_404_NOT_FOUND)
 
         # 위험도측정
-        # 주소 만들기.
-        address = Address(
-            roadAddr=report_run.temp_address.road_address,
-            bdNm=report_run.temp_address.bd_nm,
-            admCd=report_run.temp_address.adm_cd,
-            sggNm=report_run.temp_address.sgg_nm,
-            mtYn=report_run.temp_address.mt_yn,
-            lnbrMnnm=report_run.temp_address.lnbr_mnnm,
-            lnbrSlno=report_run.temp_address.lnbr_slno,
-            details=report_run.temp_address.details
-        )
-        address.initialize(research=False)
-
-        # 건축물대장부
-        building_info = BuildingInfo().makeInfo(address)
+        # 주소 만들기
+        address_manager:AddressManager = report.address.to_address_manager()
+        address_manager.initialize(research=False)
+                
+        # 건축물대장부 그냥 string으로 가져온다.
+        building_info = report.building_info.description
         # 전월세가분석
-        price_info = get_avg_price(
-            startYear=vd.get("startYear", 2024),
-            address=address
-        )
+        avg_price:AvgPrice = report.avg_price
+        price_info = {
+            "avg_year_price": avg_price.avg_year_price,
+            "avg_month_security_price": avg_price.avg_month_security_price,
+            "avg_month_rent": avg_price.avg_month_rent,
+        }
         # user의 전월세가
+        user_price:UserPrice = report.user_price
         user_price_info = {
-            "security_deposit": report_run.temp_prices.security_deposit,
-            "monthly_rent": report_run.temp_prices.monthly_rent
+            "security_deposit": user_price.security_deposit,
+            "monthly_rent": user_price.monthly_rent,
+            "is_year_rent": user_price.is_year_rent,
         }
 
         # 파일을 제외한 dict 
@@ -151,7 +196,7 @@ class MakeReportView(APIView):
         pdf_data = None
         if vd.get("is_property_registry", False):
             try:
-                pdf_data = get_property_registry(full_addr=address.roadAddr + " " + address.details)
+                pdf_data = get_property_registry(full_addr=address_manager.roadAddr + " " + address_manager.details)
             except Exception as e:
                 pdf_data = None
         
@@ -183,10 +228,9 @@ class MakeReportView(APIView):
         적합도는 일단 3000자를 채우지 말고, 점수도 그냥 0으로 설정해. 나중에 내가 다시 이 부분에 대해 설명해줄거야.
         그리고 pdf 등이 누락되면 반드시 설명해줘.
         """
+        
         messages.append(create_message("system", system_str))
-        messages.append(create_message("user", json.dumps(infos)))
+        messages.append(create_message("user", str(infos)))
         messages.append(create_message("user", "분석해줘."))
-
-        result = ask_gpt(messages)
-        print(result)
+        result = ask_gpt(messages, model='gpt-4.1')
         return Response(result)
