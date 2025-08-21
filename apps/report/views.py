@@ -6,7 +6,12 @@ from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from .models import ReportRun, DangerCheckList
+from .models import ReportRun
+
+from external.address import building_info
+from external.client.a_pick import APickClient
+from external.address.price import get_avg_price
+from external.address.address import Address
 
 # Create your views here.
 
@@ -51,4 +56,24 @@ class DangerCheckListView(APIView):
         data = [{'id': checklist.id, 'description': checklist.description} for checklist in checklists]
         return Response(data, status=status.HTTP_200_OK)
     
-    
+  
+class MakeReportView(APIView):
+    def post(self, request, report_run_id):
+        try:
+            report_run = ReportRun.objects.get(id=report_run_id)
+        except ReportRun.DoesNotExist:
+            return Response({'error': 'ReportRun not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # 위험도측정
+        # 건축물대장부
+
+        # 전월세가분석
+
+        # 등기부등본분석
+        
+
+
+
+
+        # Here you would implement the logic to generate the report        
+        return Response({'message': 'Report generated successfully'}, status=status.HTTP_200_OK)

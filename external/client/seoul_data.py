@@ -15,12 +15,13 @@ class DataSeoulClient(BaseClient):
     def getPrice(
         self,
         size:int = 10,
+        page:int = 1,
         year:int = None,
         # 자치구 코드, 법정동코드, 지번구분, 본번 부번 등 생각.
         address:Address = None,
         ):
         # parameter가 아닌 url로 값을 넣는 형태임. 먼저 필수 값들부터 넣는다.
-        path = f"/{settings.SEOUL_DATA_KEY}/json/tbLnOpendataRentV/1/{size}/"
+        path = f"/{settings.SEOUL_DATA_KEY}/json/tbLnOpendataRentV/{page}/{size}/"
         
         path += f"{year}/" if year else "/"
         if address.is_valid():
@@ -29,3 +30,6 @@ class DataSeoulClient(BaseClient):
         print(path)
         response = self.get(path)
         return response
+
+
+print()
