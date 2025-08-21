@@ -9,3 +9,9 @@ class SavePriceSerializer(serializers.Serializer):
     report_run_id = serializers.IntegerField()
     security_deposit = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
     monthly_rent = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
+
+class MakeReportSerializer(serializers.Serializer):
+    report_run_id = serializers.IntegerField()
+    startYear = serializers.IntegerField(required=False, allow_null=True, default=2024)
+    
+

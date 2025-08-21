@@ -4,7 +4,7 @@ from apps.report.models import ReportRun
 # Create your models here.
 
 class TempAddress(models.Model):
-    report_run = models.ForeignKey(ReportRun, on_delete=models.CASCADE, related_name='temp_addresses')
+    report_run = models.OneToOneField(ReportRun, on_delete=models.CASCADE, related_name='temp_address')
 
     road_address = models.CharField(max_length=255)
     bd_nm = models.CharField(max_length=100, blank=True, null=True)
@@ -19,7 +19,7 @@ class TempAddress(models.Model):
         return self.road_address
 
 class TempPrice(models.Model):
-    report_run = models.ForeignKey(ReportRun, on_delete=models.CASCADE, related_name='temp_prices')
+    report_run = models.OneToOneField(ReportRun, on_delete=models.CASCADE, related_name='temp_prices')
     security_deposit = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     monthly_rent = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 

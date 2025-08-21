@@ -51,6 +51,7 @@ class BuildingInfo:
         self.info["rserthqkDsgnApplyYn"] = item.get("rserthqkDsgnApplyYn")
         
         client.close()
+        return self.info
                 
     def getInfo(self):
         return self.info

@@ -31,7 +31,6 @@ class Address:
         self.lnbrMnnm = lnbrMnnm
         # 부번
         self.lnbrSlno = lnbrSlno
-
         # 상세 주소
         self.details = details
         
@@ -70,7 +69,10 @@ class Address:
             self.cggCd = self.admCd[:5]
             self.stdgCd = self.admCd[5:]
             # 대지, 산 여부 기본 API에서는 0이면 대지, 1이면 산. 전월세가에서는 1이 대지, 2가 산.
-            self.mtYn = str(int(self.mtYn)+1)
+            if research:
+                self.mtYn = str(int(self.mtYn) + 1)
+            else:
+                self.mtYn = str(int(self.mtYn))
             # 본번, 부번을 4자리로 맞춘다.
             # 본번
             self.lnbrMnnm = self.lnbrMnnm.zfill(4)

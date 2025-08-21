@@ -7,9 +7,9 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from .models import ReportRun
-from .serializers import ReportRunSerializer, SavePriceSerializer
+from .serializers import ReportRunSerializer, SavePriceSerializer, MakeReportSerializer
 
-from external.address import building_info
+from external.address.building_info import BuildingInfo
 from external.client.a_pick import APickClient
 from external.address.price import get_avg_price
 from external.address.address import Address
@@ -95,20 +95,46 @@ class SavePriceView(APIView):
         return Response({"temp_price_id": temp_price.id}, status=status.HTTP_201_CREATED)
 
 class MakeReportView(APIView):
-    def post(self, request, report_run_id):
+    @swagger_auto_schema(
+        operation_summary="보고서 생성",
+        operation_description="보고서를 생성합니다.",
+        query_serializer=MakeReportSerializer
+    )
+    def post(self, request):
+        serializer = MakeReportSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        vd = serializer.validated_data
+        report_run_id = vd["report_run_id"]
         try:
             report_run = ReportRun.objects.get(id=report_run_id)
         except ReportRun.DoesNotExist:
             return Response({'error': 'ReportRun not found'}, status=status.HTTP_404_NOT_FOUND)
 
         # 위험도측정
+        # 주소 만들기.
+        address = Address(
+            roadAddr=report_run.temp_address.road_address,
+            bdNm=report_run.temp_address.bd_nm,
+            admCd=report_run.temp_address.adm_cd,
+            sggNm=report_run.temp_address.sgg_nm,
+            mtYn=report_run.temp_address.mt_yn,
+            lnbrMnnm=report_run.temp_address.lnbr_mnnm,
+            lnbrSlno=report_run.temp_address.lnbr_slno,
+            details=report_run.temp_address.details
+        )
+        address.initialize(research=False)
+
         # 건축물대장부
-
+        building_info = BuildingInfo().makeInfo(address)
         # 전월세가분석
-
+        price_info = get_avg_price(
+            startYear=vd.get("startYear", 2024),
+            address=address
+        )
         # 등기부등본분석
         
-
-
-        # Here you would implement the logic to generate the report        
-        return Response({'message': 'Report generated successfully'}, status=status.HTTP_200_OK)
+        return Response({
+            "report_run_id": report_run.id,
+            "building_info": building_info,
+            "price_info": price_info
+        })

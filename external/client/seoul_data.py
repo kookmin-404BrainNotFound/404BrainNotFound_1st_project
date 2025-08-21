@@ -30,6 +30,3 @@ class DataSeoulClient(BaseClient):
         print(path)
         response = self.get(path)
         return response
-
-
-print()
