@@ -24,6 +24,10 @@ VWORLD_API_KEY = os.getenv("V_WORLD_KEY")
 SEOUL_DATA_KEY = os.getenv("SEOUL_DATA_KEY")
 BUSINESS_JUSO_KEY = os.getenv("BUSINESS_JUSO_KEY")
 
+
+AIR_QUALITY_KEY = os.getenv("AIR_QUALITY_KEY") # 대기질 api 키 가져오기
+
+
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # gpt api 키 가져오기
 
 API_URL = os.getenv("API_URL")
@@ -60,6 +64,7 @@ INSTALLED_APPS = [
     'apps.address',
     'apps.gpt',
     'apps.report',
+    'apps.image',
 ]
 
 MIDDLEWARE = [
@@ -143,3 +148,21 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+# 이미지/업로드 파일 설정
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'   # 프로젝트 루트/media 에 저장
+
+# (선택) DRF 기본 설정
+REST_FRAMEWORK = {
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',  # 파일 업로드에 필요
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
+}
