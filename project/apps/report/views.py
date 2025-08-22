@@ -10,8 +10,11 @@ from rest_framework import status, generics
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
+from apps.users.models import User
+
+
 from .models import Report, ReportData
-from .serializers import StartReportSerializer, SaveUserPriceSerializer, MakeAvgPriceSerializer, ReportDataSerializer
+from .serializers import StartReportSerializer, SaveUserPriceSerializer, MakeAvgPriceSerializer, ReportDataSerializer, ReportSerializer
 
 from external.address.building_info import BuildingInfoManager
 from external.address.price import get_avg_price
@@ -42,11 +45,18 @@ class StartReportView(APIView):
     def post(self, request):
         serializer = StartReportSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
+        vd = serializer.validated_data
+        
+        user_id = vd["user_id"]
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
+
         # 새 report 객체 생성.
-        report = Report.objects.create()
+        report = Report.objects.create(user=user)
 
         # 주소 검색 및 Address 객체 만들기.
-        vd = serializer.validated_data
         address_manager = AddressManager(roadAddr=vd["road_address"])
         address_manager.initialize(research=True)
         if not address_manager.is_valid():
@@ -83,6 +93,7 @@ class SaveUserPriceView(APIView):
         operation_description="전월세가 정보를 저장합니다.",
         query_serializer=SaveUserPriceSerializer,
         manual_parameters=[report_id_param],
+        tags=["report_danger"],
     )
     def post(self, request, report_id):
         serializer = SaveUserPriceSerializer(data=request.query_params)
@@ -109,6 +120,7 @@ class MakeBuildingInfoView(APIView):
         operation_summary="건축물대장부 저장",
         operation_description="축물대장부를 저장합니다.",
         manual_parameters=[report_id_param],
+        tags=["report_danger"],
     )
     def post(self, request, report_id):
         try:
@@ -136,6 +148,7 @@ class MakeAvgPriceView(APIView):
         operation_description="전월세가 평균을 계산해 저장합니다.",
         query_serializer=MakeAvgPriceSerializer,
         manual_parameters=[report_id_param],
+        tags=["report_danger"],
     )
     def post(self, request, report_id):
         serializer = MakeAvgPriceSerializer(data=request.query_params)
@@ -173,6 +186,7 @@ class MakePropertyRegistryView(APIView):
         operation_description="등기부등본을 저장합니다.",
         query_serializer=MakeAvgPriceSerializer,
         manual_parameters=[report_id_param],
+        tags=["report_danger"],
     )
     def post(self, request, report_id):
         try:
@@ -198,6 +212,10 @@ class MakePropertyRegistryView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
         
         
+####### 적합도 시작 ########
+
+        
+        
 # 마지막 레포트 뷰. gpt에게 맡기는 역할만 수행.
 class MakeReportFinalView(APIView):
     @swagger_auto_schema(
@@ -211,7 +229,7 @@ class MakeReportFinalView(APIView):
         except Report.DoesNotExist:
             return Response({'error': 'ReportRun not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        # 위험도측정
+        ##### 위험도측정 ##### 
         # 주소 만들기
         address_manager:AddressManager = report.address.to_address_manager()
         address_manager.initialize(research=False)
@@ -247,6 +265,11 @@ class MakeReportFinalView(APIView):
                 pdf_bytes = f.read()
         except PropertyRegistry.DoesNotExist:
             pdf_bytes = None
+            
+        ##################
+        
+        ##### 적합도 측정 #####
+        
         
         # gpt에 물어본다. 처음에는 파일을 제외하고, 파일까지 첨부한 후 물어본다.
         messages = []
@@ -278,6 +301,8 @@ class MakeReportFinalView(APIView):
         """
         
         messages.append(create_message("system", system_str))
+        
+        #### 여기부터 위험도 분석 ####
         messages.append(create_message("user", str(infos)))
         # gpt에게 등기부등본 보내기.
         if pdf_bytes is not None:
@@ -377,5 +402,74 @@ class ReportDataByReportView(generics.ListAPIView):
                 .select_related("report")
                 .filter(report_id=report_id)
                 .order_by("type", "-created"))
+
+# Report에서 필요한 부분들만 가져옵니다. ReportData가 언제 만들어졌는지, 주소, 위험도/적합도 점수, 사용자 UserPrice 등.
+class ReportDetailedSummaryView(APIView):
+    @swagger_auto_schema(
+        operation_summary="레포트에서 필요한 부분만을 가져옵니다.",
+        operation_description="주소, 생성날짜, 월세/전세 여부, 가격, 주소",
+        manual_parameters=[report_id_param],
+    )
+    def get(self, request, report_id):
+        try:
+            report = Report.objects.get(id=report_id)
+        except Report.DoesNotExist:
+            return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
         
-    
+        # 주소 가져오기.
+        address_manager:AddressManager = report.address.to_address_manager()
+        address_manager.initialize(research=False)
+        
+        result = {
+            "road_address": address_manager.roadAddr,
+            "created_at": report.created_at,
+            "danger_score": report.report_data.filter(type='danger').values_list('score', flat=True).first(),
+            "fit_score": report.report_data.filter(type='fit').values_list('score', flat=True).first(),
+            "is_year": report.user_price.is_year_rent,
+            "security_deposit": report.user_price.security_deposit,
+            "monthly_rent": report.user_price.monthly_rent,
+        }
+        
+        return Response(result, status=status.HTTP_201_CREATED)
+
+
+
+# A) 모든 리포트 조회: /reports/
+class ReportListAllView(generics.ListAPIView):
+    serializer_class = ReportSerializer
+
+    def get_queryset(self):
+        qs = Report.objects.all().order_by("-created_at")
+        status_value = self.request.query_params.get("status")
+        if status_value:
+            qs = qs.filter(status=status_value)
+        return qs
+
+    @swagger_auto_schema(
+        operation_summary="모든 리포트 조회",
+        operation_description="전체 Report 목록을 반환합니다. status 쿼리로 필터링 가능.",
+        responses={200: openapi.Response("OK", ReportSerializer(many=True))}
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+
+# B) 특정 사용자 리포트 조회: /users/<user_id>/reports/
+class ReportListByUserView(generics.ListAPIView):
+    serializer_class = ReportSerializer
+
+    def get_queryset(self):
+        user_id = self.kwargs["user_id"]
+        qs = Report.objects.filter(user_id=user_id).order_by("-created_at")
+        status_value = self.request.query_params.get("status")
+        if status_value:
+            qs = qs.filter(status=status_value)
+        return qs
+
+    @swagger_auto_schema(
+        operation_summary="특정 사용자 리포트 조회",
+        operation_description="user_id에 해당하는 사용자의 Report 목록을 반환합니다. status 쿼리로 필터링 가능.",
+        responses={200: openapi.Response("OK", ReportSerializer(many=True))}
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)

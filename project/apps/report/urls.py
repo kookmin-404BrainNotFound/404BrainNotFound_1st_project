@@ -1,10 +1,14 @@
 from .views import (StartReportView, SaveUserPriceView, MakeBuildingInfoView, 
                     MakeReportFinalView, MakeAvgPriceView, MakePropertyRegistryView,
-                    ReportDataListAllView, ReportDataByReportView)
+                    ReportDataListAllView, ReportDataByReportView, ReportListAllView, ReportListByUserView,
+                    ReportDetailedSummaryView)
 from django.urls import path
 
 urlpatterns = [
     path('startReport/', StartReportView.as_view(), name='start_report'),
+    path("reports/", ReportListAllView.as_view(), name="report-list-all"),
+    path("users/<int:user_id>/reports/", ReportListByUserView.as_view(), name="report-list-by-user"),
+    path("<int:report_id>/getReportSummary/", ReportDetailedSummaryView.as_view(), name="get_report_summary"),
     path('<int:report_id>/saveUserPrice/', SaveUserPriceView.as_view(), name='save_user_price'),
     path('<int:report_id>/makeBuildingInfo/', MakeBuildingInfoView.as_view(), name='make_building_info_report'),
     path('<int:report_id>/makeAvgPrice/', MakeAvgPriceView.as_view(), name='make_avg_price_report'),

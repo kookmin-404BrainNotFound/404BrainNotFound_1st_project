@@ -1,5 +1,6 @@
 from django.db import models
 
+from apps.users.models import User
 # Create your models here.
 
 # 레포트 모델.
@@ -11,6 +12,12 @@ class Report(models.Model):
         ('completed', 'Completed'),
         ('failed', 'Failed')
     ], default='running')
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="reports",
+        blank=True,
+    )
     
 # 위험도 혹은 적합도 레포트.
 class ReportData(models.Model):
