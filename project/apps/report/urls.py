@@ -11,6 +11,6 @@ urlpatterns = [
     path('<int:report_id>/makePropertyRegistry/', MakePropertyRegistryView.as_view(), name='make_property_registry'),
     path('<int:report_id>/makeReport/', MakeReportFinalView.as_view(), name='make_report'),
     path("report_data/", ReportDataListAllView.as_view(), name="reportdata_list_all"),
-    path("<int:report_id>/report-data/", ReportDataByReportView.as_view(), name="reportdata-by-report"),
+    path("<int:report_id>/report_data/", ReportDataByReportView.as_view(), name="reportdata-by-report"),
 ]
 

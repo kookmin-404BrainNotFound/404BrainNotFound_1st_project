@@ -70,7 +70,7 @@ class GetPriceView(APIView):
         client.close()
         
         return Response(data)
-    
+
 class PropertyRegistryViewSet(mixins.ListModelMixin,
                               mixins.RetrieveModelMixin,
                               viewsets.GenericViewSet):
