@@ -1,10 +1,11 @@
 # Alpine Linux 3.13에서 Python 3.9 이미지를 기반
-FROM python:3.9-alpine3.13
+FROM python:3.12-alpine3.21
 
 # 이미지를 생성한 사람의 정보를 포함하는 레이블을 추가
 LABEL maintainer="seokcoding.com"
 
 # Python 출력 버퍼링을 비활성화
+ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 # 로컬 파일 시스템에서 requirements.txt 파일을 /tmp 디렉토리로 복사
@@ -24,6 +25,7 @@ ARG DEV=false
 
 # 가상 환경을 만들고, pip를 업그레이드하고, 필요한 패키지를 설치하며, 
 # 임시 디렉토리를 삭제하고, django-user라는 사용자를 추가
+RUN apk add -u zlib-dev jpeg-dev gcc musl-dev
 RUN python -m venv /py && \
     /py/bin/pip install --upgrade pip && \
     /py/bin/pip install -r /tmp/requirements.txt && \
