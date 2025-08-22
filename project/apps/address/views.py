@@ -1,3 +1,4 @@
+from rest_framework import viewsets, mixins
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
@@ -14,7 +15,8 @@ from external.address.building_info import BuildingInfoManager
 from external.address.property_registry import get_property_registry
 
 from external.address.address_manager import AddressManager
-from .serializers import AddressSearchSerializer, GetPriceSerializer, GetPropertyRegistrySerializer, GetBuildingInfoSerializer
+from .serializers import AddressSearchSerializer, GetPriceSerializer, GetPropertyRegistrySerializer, GetBuildingInfoSerializer, PropertyRegistrySerializer
+from .models import PropertyRegistry
 
 # Create your views here.
 
@@ -68,6 +70,24 @@ class GetPriceView(APIView):
         client.close()
         
         return Response(data)
+    
+class PropertyRegistryViewSet(mixins.ListModelMixin,
+                              mixins.RetrieveModelMixin,
+                              viewsets.GenericViewSet):
+    queryset = (PropertyRegistry.objects
+                .select_related("report")
+                .order_by("-created"))
+    serializer_class = PropertyRegistrySerializer
+
+    filterset_fields = ["report"]  # ?report=<id> 자동 지원
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        report_id = self.request.query_params.get("report_id")
+        if report_id:
+            qs = qs.filter(report_id=report_id)
+        return qs
+
     
 # 등기부등본 가져오기.
 class GetPropertyRegistryView(APIView):

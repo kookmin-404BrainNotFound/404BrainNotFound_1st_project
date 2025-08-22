@@ -3,6 +3,7 @@ from openai import Timeout
 from dotenv import load_dotenv
 import os
 import asyncio
+from io import BytesIO
 from django.conf import settings
 
 try:
@@ -16,14 +17,28 @@ try:
 except Exception as e:
     print("gpt setting error")
 
-
-def create_message(role: str, content: str):
+# content가 string이 아닐수도 있다.
+def create_message(role: str, content):
     message = {}
     message["role"] = role
     message["content"] = content
 
     return message
 
+# gpt에게 파일을 보내고 id를 리턴받는다.
+def get_gpt_file_id(pdf_bytes: bytes, model=MODEL):
+    buffer = BytesIO(pdf_bytes)
+    buffer.name = "registry.pdf"
+    
+    uploaded = CLIENT.files.create(
+        file=buffer,
+        purpose="user_data"
+    )
+    
+    return uploaded.id
+
+def delete_gpt_file(file_id):
+    CLIENT.files.delete(file_id=file_id)
 
 # 특정 질문을 gpt에 물어본다. 실패하면 False를 리턴한다.
 def ask_gpt(messages, model=MODEL, max_tokens = 32768):
@@ -32,14 +47,14 @@ def ask_gpt(messages, model=MODEL, max_tokens = 32768):
 
     base_params = {
         "model": model,
-        "messages": messages,
+        "input": messages,
     }
     # 모델에 따른 세부 설정 분기
     if model == "gpt-4.1":
         params = {
             **base_params,
             "temperature": 0.7,
-            "max_tokens": max_tokens
+            "max_output_tokens": max_tokens
         }
     elif model == "o4-mini":
         params = {
@@ -66,12 +81,11 @@ def ask_gpt(messages, model=MODEL, max_tokens = 32768):
             "presence_penalty": 0.0,
         }
 
-    response = CLIENT.chat.completions.create(
+    response = CLIENT.responses.create(
         **params,
     )
 
-    result = response.choices[0].message.content
-    return result
+    return response.output_text
     
 
 def test_gpt(question):

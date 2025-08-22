@@ -48,7 +48,7 @@ class AvgPrice(models.Model):
     avg_month_security_price = models.FloatField(default=0.0)
     avg_month_rent = models.FloatField(default=0.0)
     
-
+# 건축물대장부 저장.
 class BuildingInfo(models.Model):
     report = models.OneToOneField(
         Report,
@@ -58,3 +58,13 @@ class BuildingInfo(models.Model):
     # buildingInfo의 string data.
     description = models.TextField(blank=False, null=False)
 
+# 등기부등본 저장
+class PropertyRegistry(models.Model):
+    report = models.OneToOneField(
+        Report,
+        on_delete=models.CASCADE,
+        related_name="property_registry",
+    )
+    pdf = models.FileField(upload_to='files/%Y/%m/%d/')
+    created = models.DateTimeField(auto_now_add=True)
+    

@@ -1,19 +1,23 @@
-from django.shortcuts import render
+from django.core.files.base import ContentFile
+from django.http import Http404
+from django.db import transaction
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, generics
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from .models import Report
-from .serializers import StartReportSerializer, SaveUserPriceSerializer, MakeReportSerializer, MakeAvgPriceReportSerializer
+from .models import Report, ReportData
+from .serializers import StartReportSerializer, SaveUserPriceSerializer, MakeAvgPriceSerializer, ReportDataSerializer
 
 from external.address.building_info import BuildingInfoManager
 from external.address.price import get_avg_price
 from external.address.address_manager import AddressManager
 from external.address.property_registry import get_property_registry
-from apps.address.models import Address, UserPrice, BuildingInfo, AvgPrice
+from apps.address.serializers import PropertyRegistrySerializer
+from apps.address.models import Address, UserPrice, BuildingInfo, AvgPrice, PropertyRegistry
 
 from external.gpt.gpt_manager import *
 
@@ -92,7 +96,7 @@ class SaveUserPriceView(APIView):
         return Response({"user_price_id": user_price.id}, status=status.HTTP_201_CREATED)
 
 # 건축물대장부 가져오기.
-class MakeBuildingInfoReportView(APIView):
+class MakeBuildingInfoView(APIView):
     def post(self, request, report_id):
         try:
             report = Report.objects.get(id=report_id)
@@ -113,14 +117,14 @@ class MakeBuildingInfoReportView(APIView):
         return Response({"building_info_id": building_info.id, "building_info": str(info)}, status=status.HTTP_201_CREATED)
 
 # 전월세가 평균 계산하기.
-class MakeAvgPriceReportView(APIView):
+class MakeAvgPriceView(APIView):
     @swagger_auto_schema(
         operation_summary="전월세가 평균계산",
         operation_description="전월세가 평균을 계산해 저장합니다.",
-        query_serializer=MakeAvgPriceReportSerializer
+        query_serializer=MakeAvgPriceSerializer
     )
     def post(self, request, report_id):
-        serializer = MakeAvgPriceReportSerializer(data=request.query_params)
+        serializer = MakeAvgPriceSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         vd = serializer.validated_data
         try:
@@ -148,17 +152,39 @@ class MakeAvgPriceReportView(APIView):
         
         return Response({"avg_price_id": avg_price.id, "price_info": str(price_info)})
 
+# 등기부등본 조회뷰.
+class MakePropertyRegistryView(APIView):
+    def post(self, request, report_id):
+        try:
+            report = Report.objects.get(id=report_id)
+        except Report.DoesNotExist:
+            return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # 주소 가져오기.
+        address_manager:AddressManager = report.address.to_address_manager()
+        address_manager.initialize(research=False)
+        
+        # 등기부등본 조회하기.
+        full_addr = address_manager.getFullAddr()
+        pdf_bytes = get_property_registry(full_addr=full_addr)
+        print(full_addr)
+        filename = "등기부등본.pdf"
+        
+        property_registry = PropertyRegistry(report=report)
+        property_registry.pdf.save(filename, ContentFile(pdf_bytes), save=True)
+        
+        serializer = PropertyRegistrySerializer(property_registry, context={"request":request})
+        
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
+        
 # 마지막 레포트 뷰. gpt에게 맡기는 역할만 수행.
 class MakeReportFinalView(APIView):
     @swagger_auto_schema(
         operation_summary="보고서 생성",
         operation_description="보고서를 생성합니다.",
-        query_serializer=MakeReportSerializer
     )
     def post(self, request, report_id):
-        serializer = MakeReportSerializer(data=request.query_params)
-        serializer.is_valid(raise_exception=True)
-        vd = serializer.validated_data
         try:
             report = Report.objects.get(id=report_id)
         except Report.DoesNotExist:
@@ -186,19 +212,20 @@ class MakeReportFinalView(APIView):
             "is_year_rent": user_price.is_year_rent,
         }
 
-        # 파일을 제외한 dict 
+        # 파일을 제외한 dict
         infos = {
             "building_info": building_info,
             "user_price_info": user_price_info,
             "price_info": price_info,
         }
-        # 등기부등본
-        pdf_data = None
-        if vd.get("is_property_registry", False):
-            try:
-                pdf_data = get_property_registry(full_addr=address_manager.roadAddr + " " + address_manager.details)
-            except Exception as e:
-                pdf_data = None
+        # 등기부등본 있으면 가져오기.
+        pdf_bytes = None
+        try:
+            pr = PropertyRegistry.objects.select_related("report").get(report_id=report_id)
+            with pr.pdf.open("rb") as f:
+                pdf_bytes = f.read()
+        except PropertyRegistry.DoesNotExist:
+            pdf_bytes = None
         
         # gpt에 물어본다. 처음에는 파일을 제외하고, 파일까지 첨부한 후 물어본다.
         messages = []
@@ -231,6 +258,89 @@ class MakeReportFinalView(APIView):
         
         messages.append(create_message("system", system_str))
         messages.append(create_message("user", str(infos)))
+        # gpt에게 등기부등본 보내기.
+        if pdf_bytes is not None:
+            file_id = get_gpt_file_id(pdf_bytes, 'gpt-4.1')
+            message = create_message("user", [
+                {"type": "input_file", "file_id": file_id},
+                {"type": "input_text", "text": "등기부등본 파일이야."}
+            ])
+            messages.append(message)
+            
         messages.append(create_message("user", "분석해줘."))
         result = ask_gpt(messages, model='gpt-4.1')
-        return Response(result)
+        
+        # 파일 삭제.
+        delete_gpt_file(file_id)
+        
+        # json으로 파싱
+        data = json.loads(result)
+        
+        # 위험도 레포트 저장.
+        return save_danger_and_fit(request, report, data)
+
+def save_danger_and_fit(request, report, payload: dict):
+    """
+    payload 예:
+    {
+      "danger_score": "23",
+      "danger_description": "...",
+      "fit_score": "0",
+      "fit_description": ""
+    }
+    """
+    # 점수 캐스팅 (문자열 들어와도 안전)
+    def to_int(val, default=0):
+        try:
+            return int(val)
+        except (TypeError, ValueError):
+            return default
+
+    danger_score = to_int(payload.get("danger_score", 0))
+    fit_score    = to_int(payload.get("fit_score", 0))
+
+    danger_description = payload.get("danger_description", "") or ""
+    fit_description    = payload.get("fit_description", "") or ""
+
+    def upsert(kind: str, score: int, description: str):
+        base_data = {
+            "report": report.id,
+            "score": score,
+            "description": description,
+            "type": kind,  # "danger" or "fit"
+        }
+        instance = ReportData.objects.filter(report=report, type=kind).first()
+        if instance:
+            serializer = ReportDataSerializer(instance, data=base_data, partial=True, context={"request": request})
+        else:
+            serializer = ReportDataSerializer(data=base_data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        obj = serializer.save()
+        return ReportDataSerializer(obj, context={"request": request}).data
+
+    with transaction.atomic():
+        danger_data = upsert("danger", danger_score, danger_description)
+        fit_data    = upsert("fit",    fit_score,    fit_description)
+
+    # 두 결과를 함께 반환
+    return Response(
+        {"danger": danger_data, "fit": fit_data},
+        status=status.HTTP_201_CREATED
+    )
+    
+
+# 1) 전체 목록: /report-data/
+class ReportDataListAllView(generics.ListAPIView):
+    queryset = ReportData.objects.select_related("report").order_by("-created")
+    serializer_class = ReportDataSerializer
+
+# 2) 특정 report의 데이터: /reports/<report_id>/report-data/
+class ReportDataByReportView(generics.ListAPIView):
+    serializer_class = ReportDataSerializer
+
+    def get_queryset(self):
+        report_id = self.kwargs["report_id"]
+        return (ReportData.objects
+                .select_related("report")
+                .filter(report_id=report_id)
+                .order_by("type", "-created"))

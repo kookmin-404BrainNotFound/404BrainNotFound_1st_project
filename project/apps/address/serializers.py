@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from datetime import datetime
 from typing import Optional
-from .models import BuildingInfo
+from .models import BuildingInfo, PropertyRegistry
 
 
 class AddressSearchSerializer(serializers.Serializer):
@@ -23,3 +23,18 @@ class GetPropertyRegistrySerializer(serializers.Serializer):
 
 class GetBuildingInfoSerializer(serializers.Serializer):
     roadAddr = serializers.CharField(max_length=200, required=True)
+
+class PropertyRegistrySerializer(serializers.ModelSerializer):
+    report_id = serializers.IntegerField(source="report.id", read_only=True)
+    pdf_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PropertyRegistry
+        fields = ["id", "report", "report_id", "pdf", "pdf_url", "created"]
+        read_only_fields = ["id", "created"]
+
+    def get_pdf_url(self, obj):
+        request = self.context.get("request")
+        if obj.pdf and request:
+            return request.build_absolute_uri(obj.pdf.url)
+        return None
