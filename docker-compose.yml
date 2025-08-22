@@ -9,8 +9,9 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./project:/app
+      - ./project/media:/app/media
       - ./project/staticfiles:/app/staticfiles
+      - ./project/db:/app/db
     command: >
       sh -c "
             python manage.py makemigrations &&
@@ -26,7 +27,6 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx.conf.d
       - ./project/media:/media
       - ./project/staticfiles:/static
     
