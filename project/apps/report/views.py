@@ -1,6 +1,7 @@
 from django.core.files.base import ContentFile
 from django.http import Http404
 from django.db import transaction
+from django.utils.decorators import method_decorator
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -24,6 +25,12 @@ from external.gpt.gpt_manager import *
 import json
 
 # Create your views here.
+
+report_id_param = openapi.Parameter(
+    name="report_id", in_=openapi.IN_PATH, type=openapi.TYPE_INTEGER,
+    description="대상 Report ID", required=True,
+)
+
 
 # 보고서 작성을 시작한다.
 class StartReportView(APIView):
@@ -74,7 +81,8 @@ class SaveUserPriceView(APIView):
     @swagger_auto_schema(
         operation_summary="전월세가 저장",
         operation_description="전월세가 정보를 저장합니다.",
-        query_serializer=SaveUserPriceSerializer
+        query_serializer=SaveUserPriceSerializer,
+        manual_parameters=[report_id_param],
     )
     def post(self, request, report_id):
         serializer = SaveUserPriceSerializer(data=request.query_params)
@@ -97,6 +105,11 @@ class SaveUserPriceView(APIView):
 
 # 건축물대장부 가져오기.
 class MakeBuildingInfoView(APIView):
+    @swagger_auto_schema(
+        operation_summary="건축물대장부 저장",
+        operation_description="축물대장부를 저장합니다.",
+        manual_parameters=[report_id_param],
+    )
     def post(self, request, report_id):
         try:
             report = Report.objects.get(id=report_id)
@@ -121,7 +134,8 @@ class MakeAvgPriceView(APIView):
     @swagger_auto_schema(
         operation_summary="전월세가 평균계산",
         operation_description="전월세가 평균을 계산해 저장합니다.",
-        query_serializer=MakeAvgPriceSerializer
+        query_serializer=MakeAvgPriceSerializer,
+        manual_parameters=[report_id_param],
     )
     def post(self, request, report_id):
         serializer = MakeAvgPriceSerializer(data=request.query_params)
@@ -154,6 +168,12 @@ class MakeAvgPriceView(APIView):
 
 # 등기부등본 조회뷰.
 class MakePropertyRegistryView(APIView):
+    @swagger_auto_schema(
+        operation_summary="등기부등본 저장",
+        operation_description="등기부등본을 저장합니다.",
+        query_serializer=MakeAvgPriceSerializer,
+        manual_parameters=[report_id_param],
+    )
     def post(self, request, report_id):
         try:
             report = Report.objects.get(id=report_id)
@@ -183,6 +203,7 @@ class MakeReportFinalView(APIView):
     @swagger_auto_schema(
         operation_summary="보고서 생성",
         operation_description="보고서를 생성합니다.",
+        manual_parameters=[report_id_param],
     )
     def post(self, request, report_id):
         try:
@@ -328,13 +349,25 @@ def save_danger_and_fit(request, report, payload: dict):
         status=status.HTTP_201_CREATED
     )
     
-
+@method_decorator(name="get", decorator=swagger_auto_schema(
+    operation_summary="전체 레포트 GET",
+    operation_description="전체 레포트 데이터를 가져옵니다.",
+    tags=["ReportData"],
+    responses={200: ReportDataSerializer(many=True)},
+))
 # 1) 전체 목록: /report-data/
 class ReportDataListAllView(generics.ListAPIView):
     queryset = ReportData.objects.select_related("report").order_by("-created")
     serializer_class = ReportDataSerializer
 
-# 2) 특정 report의 데이터: /reports/<report_id>/report-data/
+
+@method_decorator(name="get", decorator=swagger_auto_schema(
+    operation_summary="레포트 GET",
+    operation_description="특정 레포트 데이터를 가져옵니다.",
+    tags=["ReportData"],
+    manual_parameters=[report_id_param],
+    responses={200: ReportDataSerializer(many=True)},
+))
 class ReportDataByReportView(generics.ListAPIView):
     serializer_class = ReportDataSerializer
 
@@ -344,3 +377,5 @@ class ReportDataByReportView(generics.ListAPIView):
                 .select_related("report")
                 .filter(report_id=report_id)
                 .order_by("type", "-created"))
+        
+    
