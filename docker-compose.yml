@@ -1,29 +1,35 @@
 version: "3.9"
 
 services:
-  app:
-    # 현재 디렉토리를 빌드 컨텍스트로 사용하여 Docker 이미지를 빌드
-    build:
-      context: .
-      # Dockerfile에 'DEV' 인자를 전달하는 데 사용
-      # Dockerfile에서 빌드 과정 중에 'DEV' 변수를 true로 설정
-      args:
-        - DEV=true
+  safehome:
+    container_name: safehome
     image: poatansanyo/safehome:1.0.0
-    pull_policy: never
-    # 호스트의 8000번 포트를 컨테이너의 8000번 포트로 매핑
+    build:
+      context: ./project
     ports:
       - "8000:8000"
     volumes:
-      # 현재 디렉토리의 app 디렉토리를 컨테이너의 /app 디렉토리와 공유
-      - .:/app
-    # 컨테이너가 시작될 때 실행할 명령어를 설정
+      - ./project:/app
+      - ./project/staticfiles:/app/staticfiles
     command: >
       sh -c "
-      PYTHONUNBUFFERED=1
-      && python manage.py migrate
-      && python manage.py runserver 0.0.0.0:8000
-      "
+            python manage.py makemigrations &&
+            python manage.py migrate &&
+            python manage.py collectstatic --noinput &&
+            gunicorn safehome.wsgi:application --bind 0.0.0.0:8000
+          "
+  nginx:
+    container_name: safehome_nginx
+    image: poatansanyo/safehome_nginx:1.0.0
+    build:
+      context: ./nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx.conf.d
+      - ./project/media:/media
+      - ./project/staticfiles:/static
+    
 
 
 
