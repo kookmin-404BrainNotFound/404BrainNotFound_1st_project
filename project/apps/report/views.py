@@ -14,13 +14,14 @@ from apps.users.models import User, UserTendency
 from apps.users.serializers import UserTendencyReadSerializer
 
 from .models import Report, ReportData
-from .serializers import StartReportSerializer, SaveUserPriceSerializer, MakeAvgPriceSerializer, ReportDataSerializer, ReportSerializer
+from .serializers import StartReportSerializer, SaveUserPriceDocSerializer, MakeAvgPriceDocSerializer, ReportDataSerializer, ReportSerializer
 
 from external.address.building_info import BuildingInfoManager
 from external.address.price import get_avg_price
 from external.address.address_manager import AddressManager
 from external.address.property_registry import get_property_registry
-from apps.address.serializers import PropertyRegistrySerializer, AirConditionSerializer
+from apps.address.serializers import (PropertyRegistrySerializer, AirConditionSerializer,
+                                      UserPriceSerializer, BuildingInfoSerializer, AvgPriceSerializer)
 from apps.address.models import (Address, UserPrice, BuildingInfo, AvgPrice, PropertyRegistry,
                                  AirCondition)
 
@@ -35,7 +36,6 @@ report_id_param = openapi.Parameter(
     name="report_id", in_=openapi.IN_PATH, type=openapi.TYPE_INTEGER,
     description="대상 Report ID", required=True,
 )
-
 
 # 보고서 작성을 시작한다.
 class StartReportView(APIView):
@@ -93,34 +93,28 @@ class SaveUserPriceView(APIView):
     @swagger_auto_schema(
         operation_summary="전월세가 저장",
         operation_description="전월세가 정보를 저장합니다.",
-        query_serializer=SaveUserPriceSerializer,
+        query_serializer=SaveUserPriceDocSerializer,
         manual_parameters=[report_id_param],
         tags=["report_danger"],
     )
     def post(self, request, report_id):
-        serializer = SaveUserPriceSerializer(data=request.query_params)
-        serializer.is_valid(raise_exception=True)
-
         try:
             report = Report.objects.get(id=report_id)
         except Report.DoesNotExist:
             return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
 
+        serializer = UserPriceSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
         # 가격 저장
-        user_price = UserPrice.objects.create(
-            report=report,
-            security_deposit=serializer.validated_data.get("security_deposit"),
-            monthly_rent=serializer.validated_data.get("monthly_rent"),
-            is_year_rent=serializer.validated_data.get("is_year_rent"),
-        )
+        serializer.save(report=report)
 
-        return Response({"user_price_id": user_price.id}, status=status.HTTP_201_CREATED)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 # 건축물대장부 가져오기.
 class MakeBuildingInfoView(APIView):
     @swagger_auto_schema(
         operation_summary="건축물대장부 저장",
-        operation_description="축물대장부를 저장합니다.",
+        operation_description="건축물대장부를 저장합니다.",
         manual_parameters=[report_id_param],
         tags=["report_danger"],
     )
@@ -136,26 +130,25 @@ class MakeBuildingInfoView(APIView):
         
         # 건축물대장부
         info = BuildingInfoManager().makeInfo(address_manager)
-        building_info = BuildingInfo.objects.create(
-            report=report,
-            description=str(info),
-        )
+        serializer = BuildingInfoSerializer(data={"description": info})
+        serializer.is_valid(raise_exception=True)
+        serializer.save(report=report)
         
-        return Response({"building_info_id": building_info.id, "building_info": str(info)}, status=status.HTTP_201_CREATED)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 # 전월세가 평균 계산하기.
 class MakeAvgPriceView(APIView):
     @swagger_auto_schema(
         operation_summary="전월세가 평균계산",
         operation_description="전월세가 평균을 계산해 저장합니다.",
-        query_serializer=MakeAvgPriceSerializer,
+        query_serializer=MakeAvgPriceDocSerializer,
         manual_parameters=[report_id_param],
         tags=["report_danger"],
     )
     def post(self, request, report_id):
-        serializer = MakeAvgPriceSerializer(data=request.query_params)
-        serializer.is_valid(raise_exception=True)
-        vd = serializer.validated_data
+        docSerializer = MakeAvgPriceDocSerializer(data=request.query_params)
+        docSerializer.is_valid(raise_exception=True)
+        vd = docSerializer.validated_data
         try:
             report = Report.objects.get(id=report_id)
         except Report.DoesNotExist:
@@ -171,22 +164,18 @@ class MakeAvgPriceView(APIView):
             address_manager=address_manager
         )
         
-        # 저장하기
-        avg_price = AvgPrice.objects.create(
-            report=report,
-            avg_year_price=price_info["avg_year_price"],
-            avg_month_security_price=price_info["avg_month_security_price"],
-            avg_month_rent=price_info["avg_month_rent"],
-        )
+        serialzier = AvgPriceSerializer(data=price_info)
+        serialzier.is_valid(raise_exception=True)
+        serialzier.save(report=report)
         
-        return Response({"avg_price_id": avg_price.id, "price_info": str(price_info)})
+        return Response(serialzier.data, status=status.HTTP_201_CREATED)
 
 # 등기부등본 조회뷰.
 class MakePropertyRegistryView(APIView):
     @swagger_auto_schema(
         operation_summary="등기부등본 저장",
         operation_description="등기부등본을 저장합니다.",
-        query_serializer=MakeAvgPriceSerializer,
+        query_serializer=MakeAvgPriceDocSerializer,
         manual_parameters=[report_id_param],
         tags=["report_danger"],
     )
@@ -233,16 +222,14 @@ class MakeAirConditionView(APIView):
 
         client = DataSeoulClient()
         response = client.get_yearly_by_gu(2024, address_manager.sggNm)
-        print(response)
 
         # db에 임시 저장하기.
-        air_condition = AirCondition.objects.create(
-            report=report,
-            data=str(response)
-        )
-        return Response(AirConditionSerializer(air_condition).data)
+        serializer = AirConditionSerializer(data=response)
+        serializer.is_valid()
+        serializer.save(report=report)
 
-        
+        return Response(serializer.data)
+
         
 # 마지막 레포트 뷰. gpt에게 맡기는 역할만 수행.
 class MakeReportFinalView(APIView):

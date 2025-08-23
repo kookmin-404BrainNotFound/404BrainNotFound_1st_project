@@ -13,4 +13,5 @@ class User(models.Model):
 # 주거 성향.
 class UserTendency(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="user_tendency")
-    description = models.TextField()
+    description = models.JSONField(default=dict)
+

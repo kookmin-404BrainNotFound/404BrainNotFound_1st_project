@@ -39,6 +39,6 @@ class UserTendencyReadSerializer(serializers.ModelSerializer):
         return {"id": obj.user_id, "username": obj.user.name}
 
 class UserTendencyWriteSerializer(serializers.Serializer):
-    description = serializers.CharField(allow_blank=False, trim_whitespace=True)
+    description = serializers.JSONField()
 
 

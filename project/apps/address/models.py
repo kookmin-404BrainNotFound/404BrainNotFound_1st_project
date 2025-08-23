@@ -56,7 +56,7 @@ class BuildingInfo(models.Model):
         related_name="building_info",
     )
     # buildingInfo의 string data.
-    description = models.TextField(blank=False, null=False)
+    description = models.JSONField(default=dict)
 
 # 등기부등본 저장
 class PropertyRegistry(models.Model):
@@ -76,5 +76,5 @@ class AirCondition(models.Model):
         on_delete=models.CASCADE,
         related_name="air_condition",
     )
-    data = models.TextField(default="")
+    data = models.JSONField(default=dict)
     created = models.DateTimeField(auto_now_add=True)
