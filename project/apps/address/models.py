@@ -68,3 +68,13 @@ class PropertyRegistry(models.Model):
     pdf = models.FileField(upload_to='files/%Y/%m/%d/')
     created = models.DateTimeField(auto_now_add=True)
     
+# 공기질 데이터 저장.
+# 등기부등본 저장
+class AirCondition(models.Model):
+    report = models.OneToOneField(
+        Report,
+        on_delete=models.CASCADE,
+        related_name="air_condition",
+    )
+    data = models.TextField(default="")
+    created = models.DateTimeField(auto_now_add=True)

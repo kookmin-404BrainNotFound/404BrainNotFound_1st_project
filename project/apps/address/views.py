@@ -58,7 +58,6 @@ class GetPriceView(APIView):
 
         if not address.is_valid():
             return Response({"error": "유효하지 않은 주소입니다."}, status=400)
-        print(f"Address created: {address}")
         
         client = DataSeoulClient()
         
@@ -133,7 +132,6 @@ class GetBuildingInfoView(APIView):
 
         if not address.is_valid():
             return Response({"error": "유효하지 않은 주소입니다."}, status=400)
-        print(f"Address created: {address}")
         
         info = BuildingInfoManager().makeInfo(address)
         

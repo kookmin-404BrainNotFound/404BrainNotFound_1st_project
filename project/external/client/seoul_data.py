@@ -34,7 +34,6 @@ class DataSeoulClient(BaseClient):
         if address and address.is_valid(): # ← address가 None이면 AttributeError
             path += f"{address.cggCd}/{address.sggNm}/{address.stdgCd}/{address.mtYn}/{address.lnbrMnnm}/{address.lnbrSlno}"
 
-        print(path)
         response = self.get(path)
         return response
 
@@ -61,7 +60,6 @@ class DataSeoulClient(BaseClient):
             path += quote(gu_name)
 
         # 3) 실제 요청 수행 (BaseClient.get 사용) 및 JSON 반환
-        # print(path)
         return self.get(path)
 
     def get_all(self) -> Dict[str, Any]:

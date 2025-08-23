@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from datetime import datetime
 from typing import Optional
-from .models import BuildingInfo, PropertyRegistry
+from .models import BuildingInfo, PropertyRegistry, AirCondition
 
 
 class AddressSearchSerializer(serializers.Serializer):
@@ -38,3 +38,10 @@ class PropertyRegistrySerializer(serializers.ModelSerializer):
         if obj.pdf and request:
             return request.build_absolute_uri(obj.pdf.url)
         return None
+
+class AirConditionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AirCondition
+        fields = ["id", "report", "data", "created"]
+        read_only_fields = ["id", "created"]
+        

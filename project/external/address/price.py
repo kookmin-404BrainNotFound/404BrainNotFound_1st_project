@@ -22,7 +22,6 @@ def get_avg_price(startYear, address_manager:AddressManager):
         rows = response.get("tbLnOpendataRentV").get("row", [])
 
         for row in rows:
-            print(row)
             # 전세/월세
             rent_se = row.get("RENT_SE")
             grfe = int(row.get("GRFE"))

@@ -10,8 +10,8 @@ from rest_framework import status, generics
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from apps.users.models import User
-
+from apps.users.models import User, UserTendency
+from apps.users.serializers import UserTendencyReadSerializer
 
 from .models import Report, ReportData
 from .serializers import StartReportSerializer, SaveUserPriceSerializer, MakeAvgPriceSerializer, ReportDataSerializer, ReportSerializer
@@ -20,9 +20,11 @@ from external.address.building_info import BuildingInfoManager
 from external.address.price import get_avg_price
 from external.address.address_manager import AddressManager
 from external.address.property_registry import get_property_registry
-from apps.address.serializers import PropertyRegistrySerializer
-from apps.address.models import Address, UserPrice, BuildingInfo, AvgPrice, PropertyRegistry
+from apps.address.serializers import PropertyRegistrySerializer, AirConditionSerializer
+from apps.address.models import (Address, UserPrice, BuildingInfo, AvgPrice, PropertyRegistry,
+                                 AirCondition)
 
+from external.client.seoul_data import DataSeoulClient
 from external.gpt.gpt_manager import *
 
 import json
@@ -201,7 +203,6 @@ class MakePropertyRegistryView(APIView):
         # 등기부등본 조회하기.
         full_addr = address_manager.getFullAddr()
         pdf_bytes = get_property_registry(full_addr=full_addr)
-        print(full_addr)
         filename = "등기부등본.pdf"
         
         property_registry = PropertyRegistry(report=report)
@@ -213,6 +214,33 @@ class MakePropertyRegistryView(APIView):
         
         
 ####### 적합도 시작 ########
+class MakeAirConditionView(APIView):
+    @swagger_auto_schema(
+        operation_summary="공기질 데이터 저장.",
+        operation_description="공기질 데이터를 저장합니다.",
+        manual_parameters=[report_id_param],
+        tags=["report_fit"],
+    )
+    def post(self, request, report_id):
+        try:
+            report = Report.objects.get(id=report_id)
+        except Report.DoesNotExist:
+            return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # 주소 가져오기.
+        address_manager:AddressManager = report.address.to_address_manager()
+        address_manager.initialize(research=False)
+
+        client = DataSeoulClient()
+        response = client.get_yearly_by_gu(2024, address_manager.sggNm)
+        print(response)
+
+        # db에 임시 저장하기.
+        air_condition = AirCondition.objects.create(
+            report=report,
+            data=str(response)
+        )
+        return Response(AirConditionSerializer(air_condition).data)
 
         
         
@@ -269,7 +297,16 @@ class MakeReportFinalView(APIView):
         ##################
         
         ##### 적합도 측정 #####
-        
+
+        # user를 가져오기.
+        user:User = report.user
+        # usertendency를 가져오기.
+        user_tendency = UserTendencyReadSerializer(user.user_tendency).data
+        print(user_tendency)
+
+        # 공기질 가져오기.
+        air_condiion = AirConditionSerializer(report.air_condition).data
+        print(air_condiion)   
         
         # gpt에 물어본다. 처음에는 파일을 제외하고, 파일까지 첨부한 후 물어본다.
         messages = []
@@ -296,28 +333,38 @@ class MakeReportFinalView(APIView):
 
         위 내용들을 종합적으로 평가해서 위험도 점수와 description을 작성하면 돼.
 
-        적합도는 일단 3000자를 채우지 말고, 점수도 그냥 0으로 설정해. 나중에 내가 다시 이 부분에 대해 설명해줄거야.
+        적합도는 사용자의 성향 데이터와, 건축물대장(building_info), 공기질 데이터, 침수 데이터 등으로 판단해. 절대 마음대로 가정해서 판단하지 말고,
+        주어진 데이터를 바탕으로 분석해서 점수를 내주면 돼. 근데 햇빛이나 소음 등은, 사용자의 상세주소와 사는 곳을 바탕으로 추정만 해주고,
+        사용자에게 직접 찾아가서 볼 것을 권유해줘.
         그리고 pdf 등이 누락되면 반드시 설명해줘.
         """
         
         messages.append(create_message("system", system_str))
         
         #### 여기부터 위험도 분석 ####
+        # 건축물 대장부 등 받기.
         messages.append(create_message("user", str(infos)))
         # gpt에게 등기부등본 보내기.
         if pdf_bytes is not None:
-            file_id = get_gpt_file_id(pdf_bytes, 'gpt-4.1')
+            pdf_file_id = get_gpt_file_id(pdf_bytes, 'gpt-4.1')
             message = create_message("user", [
-                {"type": "input_file", "file_id": file_id},
+                {"type": "input_file", "file_id": pdf_file_id},
                 {"type": "input_text", "text": "등기부등본 파일이야."}
             ])
             messages.append(message)
-            
+        
+        # 사용자 성향 데이터 받기.
+        messages.append(create_message("user", str(user_tendency)))
+        # 공기질 데이터 넣기.
+        messages.append(create_message("user", str(air_condiion)))
+        # 침수 데이터 넣기.
+        messages.append(create_message("user", ""))
+        # 분석
         messages.append(create_message("user", "분석해줘."))
         result = ask_gpt(messages, model='gpt-4.1')
         
         # 파일 삭제.
-        delete_gpt_file(file_id)
+        delete_gpt_file(pdf_file_id)
         
         # json으로 파싱
         data = json.loads(result)
