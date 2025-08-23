@@ -64,7 +64,7 @@ INSTALLED_APPS = [
     'apps.address',
     'apps.gpt',
     'apps.report',
-    'apps.image',
+    'apps.contract',
 ]
 
 MIDDLEWARE = [

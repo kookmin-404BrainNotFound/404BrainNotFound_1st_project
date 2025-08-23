@@ -1,9 +1,9 @@
 from rest_framework import serializers
-from .models import image
+from .models import Contract
 
-class ImageSerializer(serializers.ModelSerializer):
+class ContractSerializer(serializers.ModelSerializer):
     class Meta:
-        model = image
+        model = Contract
         fields = ['id', 'image', 'caption', 'created']
 
     def validate_image(self, image):

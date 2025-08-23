@@ -46,7 +46,7 @@ urlpatterns = [
     path('address/', include('apps.address.urls')),
     path('gpt/', include('apps.gpt.urls')),
     path('report/', include('apps.report.urls')),
-    path('api/', include('apps.image.urls')),
+    path('contract/', include('apps.contract.urls')),
 ]
 
 
