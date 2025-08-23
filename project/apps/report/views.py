@@ -2,6 +2,7 @@ from django.core.files.base import ContentFile
 from django.http import Http404
 from django.db import transaction
 from django.utils.decorators import method_decorator
+from django.db.models import OuterRef, Subquery
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,7 +15,8 @@ from apps.users.models import User, UserTendency
 from apps.users.serializers import UserTendencyReadSerializer
 
 from .models import Report, ReportData
-from .serializers import StartReportSerializer, SaveUserPriceDocSerializer, MakeAvgPriceDocSerializer, ReportDataSerializer, ReportSerializer
+from .serializers import (StartReportSerializer, SaveUserPriceDocSerializer, MakeAvgPriceDocSerializer,
+                           ReportDataSerializer, ReportSerializer, ReportSummarySerializer)
 
 from external.address.building_info import BuildingInfoManager
 from external.address.price import get_avg_price
@@ -253,18 +255,11 @@ class MakeReportFinalView(APIView):
         building_info = report.building_info.description
         # 전월세가분석
         avg_price:AvgPrice = report.avg_price
-        price_info = {
-            "avg_year_price": avg_price.avg_year_price,
-            "avg_month_security_price": avg_price.avg_month_security_price,
-            "avg_month_rent": avg_price.avg_month_rent,
-        }
+        price_info = AvgPriceSerializer(avg_price).data
+        
         # user의 전월세가
         user_price:UserPrice = report.user_price
-        user_price_info = {
-            "security_deposit": user_price.security_deposit,
-            "monthly_rent": user_price.monthly_rent,
-            "is_year_rent": user_price.is_year_rent,
-        }
+        user_price_info = UserPriceSerializer(user_price).data
 
         # 파일을 제외한 dict
         infos = {
@@ -303,13 +298,21 @@ class MakeReportFinalView(APIView):
         너는 사용자가 제공하는 데이터를 기반으로 위험도 점수, 적합도 점수와 함께
         위험도 레포트, 적합도 레포트를 작성해야 해.
         오직 Json형식으로만 응답하고 이외의 불필요한 텍스트는 모두 제거해줘.
+        말투는 진지하게, 수치를 사용자에게 전부 보여주는 방식이 아니라, 축약해서 누구나 알아듣기 쉽게 말로 풀어 설명해줘.
+        말투는 항상 ~다.로 끝나게 해줘.
         형식은 다음과 같아.
-        {
-            "danger_score": "82",
-            "danger_description": "",
-            "fit_score": "70",
-            "fit_description": ""
-        }
+        [
+            {
+                "type": "danger",
+                "score": "82",
+                "description": ""
+            },
+            {
+                "type": "fit",
+                "score": "70",
+                "description": ""
+            }
+        ]
         
         각 description은 약 3000자 정도로, 마크다운 문법으로 주고, 이모티콘과 아이콘은 많이 사용하지는 말아줘.
 
@@ -355,59 +358,19 @@ class MakeReportFinalView(APIView):
         
         # json으로 파싱
         data = json.loads(result)
-        
+        # 각 데이터를 저장.
+        with transaction.atomic():
+            danger_report_data_ser = ReportDataSerializer(data=data[0])
+            danger_report_data_ser.is_valid(raise_exception=True)
+            danger_report_data_ser.save(report=report)
+
+            fit_report_data_ser = ReportDataSerializer(data=data[1])
+            fit_report_data_ser.is_valid(raise_exception=True)
+            fit_report_data_ser.save(report=report)
+
         # 위험도 레포트 저장.
-        return save_danger_and_fit(request, report, data)
+        return Response([danger_report_data_ser.data, fit_report_data_ser.data], status=status.HTTP_201_CREATED)
 
-def save_danger_and_fit(request, report, payload: dict):
-    """
-    payload 예:
-    {
-      "danger_score": "23",
-      "danger_description": "...",
-      "fit_score": "0",
-      "fit_description": ""
-    }
-    """
-    # 점수 캐스팅 (문자열 들어와도 안전)
-    def to_int(val, default=0):
-        try:
-            return int(val)
-        except (TypeError, ValueError):
-            return default
-
-    danger_score = to_int(payload.get("danger_score", 0))
-    fit_score    = to_int(payload.get("fit_score", 0))
-
-    danger_description = payload.get("danger_description", "") or ""
-    fit_description    = payload.get("fit_description", "") or ""
-
-    def upsert(kind: str, score: int, description: str):
-        base_data = {
-            "report": report.id,
-            "score": score,
-            "description": description,
-            "type": kind,  # "danger" or "fit"
-        }
-        instance = ReportData.objects.filter(report=report, type=kind).first()
-        if instance:
-            serializer = ReportDataSerializer(instance, data=base_data, partial=True, context={"request": request})
-        else:
-            serializer = ReportDataSerializer(data=base_data, context={"request": request})
-        serializer.is_valid(raise_exception=True)
-        obj = serializer.save()
-        return ReportDataSerializer(obj, context={"request": request}).data
-
-    with transaction.atomic():
-        danger_data = upsert("danger", danger_score, danger_description)
-        fit_data    = upsert("fit",    fit_score,    fit_description)
-
-    # 두 결과를 함께 반환
-    return Response(
-        {"danger": danger_data, "fit": fit_data},
-        status=status.HTTP_201_CREATED
-    )
-    
 @method_decorator(name="get", decorator=swagger_auto_schema(
     operation_summary="전체 레포트 GET",
     operation_description="전체 레포트 데이터를 가져옵니다.",
@@ -437,36 +400,6 @@ class ReportDataByReportView(generics.ListAPIView):
                 .filter(report_id=report_id)
                 .order_by("type", "-created"))
 
-# Report에서 필요한 부분들만 가져옵니다. ReportData가 언제 만들어졌는지, 주소, 위험도/적합도 점수, 사용자 UserPrice 등.
-class ReportDetailedSummaryView(APIView):
-    @swagger_auto_schema(
-        operation_summary="레포트에서 필요한 부분만을 가져옵니다.",
-        operation_description="주소, 생성날짜, 월세/전세 여부, 가격, 주소",
-        manual_parameters=[report_id_param],
-    )
-    def get(self, request, report_id):
-        try:
-            report = Report.objects.get(id=report_id)
-        except Report.DoesNotExist:
-            return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
-        
-        # 주소 가져오기.
-        address_manager:AddressManager = report.address.to_address_manager()
-        address_manager.initialize(research=False)
-        
-        result = {
-            "road_address": address_manager.roadAddr,
-            "created_at": report.created_at,
-            "danger_score": report.report_data.filter(type='danger').values_list('score', flat=True).first(),
-            "fit_score": report.report_data.filter(type='fit').values_list('score', flat=True).first(),
-            "is_year": report.user_price.is_year_rent,
-            "security_deposit": report.user_price.security_deposit,
-            "monthly_rent": report.user_price.monthly_rent,
-        }
-        
-        return Response(result, status=status.HTTP_201_CREATED)
-
-
 
 # A) 모든 리포트 조회: /reports/
 class ReportListAllView(generics.ListAPIView):
@@ -488,22 +421,36 @@ class ReportListAllView(generics.ListAPIView):
         return super().get(request, *args, **kwargs)
 
 
-# B) 특정 사용자 리포트 조회: /users/<user_id>/reports/
+# B) 특정 사용자 리포트 조회: /users/<user_id>/reports/ 요약을 전달한다.
 class ReportListByUserView(generics.ListAPIView):
-    serializer_class = ReportSerializer
+    serializer_class = ReportSummarySerializer
 
     def get_queryset(self):
         user_id = self.kwargs["user_id"]
-        qs = Report.objects.filter(user_id=user_id).order_by("-created_at")
+
+        danger_sq = (ReportData.objects
+                     .filter(report_id=OuterRef("pk"), type="danger")
+                     .order_by("-created")
+                     .values("score")[:1])
+
+        fit_sq = (ReportData.objects
+                  .filter(report_id=OuterRef("pk"), type="fit")
+                  .order_by("-created")
+                  .values("score")[:1])
+
+        up = UserPrice.objects.filter(report_id=OuterRef("pk"))
+        qs = (Report.objects
+              .filter(user_id=user_id)
+              .annotate(
+                  danger_score=Subquery(danger_sq),
+                  fit_score=Subquery(fit_sq),
+                  security_deposit=Subquery(up.values("security_deposit")[:1]),
+                  monthly_rent=Subquery(up.values("monthly_rent")[:1]),
+                  is_year_rent=Subquery(up.values("is_year_rent")[:1]),
+              )
+              .order_by("-id"))  # ← 여기만 변경
+
         status_value = self.request.query_params.get("status")
         if status_value:
             qs = qs.filter(status=status_value)
         return qs
-
-    @swagger_auto_schema(
-        operation_summary="특정 사용자 리포트 조회",
-        operation_description="user_id에 해당하는 사용자의 Report 목록을 반환합니다. status 쿼리로 필터링 가능.",
-        responses={200: openapi.Response("OK", ReportSerializer(many=True))}
-    )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)

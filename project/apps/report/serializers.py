@@ -30,4 +30,30 @@ class ReportDataSerializer(serializers.ModelSerializer):
         model = ReportData
         fields = ["id", "report", "score", "description", "type", "created"]
         read_only_fields = ["id", "created"]
-        
+        extra_kwargs = {
+            "report": {"write_only": True, "required":False},
+        }
+
+    def create(self, validated_data):
+        return ReportData.objects.create(**validated_data)
+
+class ReportSummarySerializer(serializers.ModelSerializer):
+    # Subquery로 annotate된 값들을 그대로 직렬화
+    danger_score = serializers.IntegerField(read_only=True, allow_null=True)
+    fit_score = serializers.IntegerField(read_only=True, allow_null=True)
+    security_deposit = serializers.IntegerField(read_only=True, allow_null=True)
+    monthly_rent = serializers.IntegerField(read_only=True, allow_null=True)
+    is_year_rent = serializers.BooleanField(read_only=True, allow_null=True)
+
+    class Meta:
+        model = Report
+        fields = [
+            "id",
+            "created_at",
+            "status",
+            "danger_score",
+            "fit_score",
+            "is_year_rent",
+            "security_deposit",
+            "monthly_rent",
+        ]
