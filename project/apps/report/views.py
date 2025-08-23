@@ -6,7 +6,7 @@ from django.db.models import OuterRef, Subquery
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, generics
+from rest_framework import status, generics, viewsets
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -308,7 +308,7 @@ class MakeReportFinalView(APIView):
             pr = property_bundle.property_registry
             with pr.pdf.open("rb") as f:
                 pdf_bytes = f.read()
-        except PropertyRegistry.DoesNotExist:
+        except Exception as e:
             pdf_bytes = None
             
         ##################
@@ -406,57 +406,85 @@ class MakeReportFinalView(APIView):
         # 위험도 레포트 저장.
         return Response([danger_report_data_ser.data, fit_report_data_ser.data], status=status.HTTP_201_CREATED)
 
-@method_decorator(name="get", decorator=swagger_auto_schema(
-    operation_summary="전체 레포트 GET",
-    operation_description="전체 레포트 데이터를 가져옵니다.",
-    tags=["ReportData"],
-    responses={200: ReportDataSerializer(many=True)},
-))
-# 1) 전체 목록: /report-data/
-class ReportDataListAllView(generics.ListAPIView):
-    queryset = ReportData.objects.select_related("report").order_by("-created")
-    serializer_class = ReportDataSerializer
-
-
-@method_decorator(name="get", decorator=swagger_auto_schema(
-    operation_summary="레포트 GET",
-    operation_description="특정 레포트 데이터를 가져옵니다.",
-    tags=["ReportData"],
-    manual_parameters=[report_id_param],
-    responses={200: ReportDataSerializer(many=True)},
-))
-class ReportDataByReportView(generics.ListAPIView):
-    serializer_class = ReportDataSerializer
-
-    def get_queryset(self):
-        report_id = self.kwargs["report_id"]
-        return (ReportData.objects
+# 레포트데이터 dataviewset.
+class ReportDataViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    GET /api/report-data/            -> 전체
+    GET /api/report-data/?report=1   -> report_id=1만 필터
+    """
+    queryset = (ReportData.objects
                 .select_related("report")
-                .filter(report_id=report_id)
-                .order_by("type", "-created"))
+                .order_by("-created"))
+    serializer_class = ReportDataSerializer
 
-
-# A) 모든 리포트 조회: /reports/
-class ReportListAllView(generics.ListAPIView):
-    serializer_class = ReportSerializer
-
-    def get_queryset(self):
-        qs = Report.objects.all().order_by("-created_at")
-        status_value = self.request.query_params.get("status")
-        if status_value:
-            qs = qs.filter(status=status_value)
-        return qs
+    # 검색/정렬/필터
+    filterset_fields  = ["report"]              # ?report=1
+    ordering_fields   = ["created", "type"]     # ?ordering=type or -created
+    
+    @swagger_auto_schema(
+        operation_summary="레포트 데이터 목록",
+        operation_description="전체 혹은 report ID로 필터링된 데이터를 반환합니다.",
+        tags=["ReportData"],
+        responses={200: ReportDataSerializer(many=True)},
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     @swagger_auto_schema(
-        operation_summary="모든 리포트 조회",
-        operation_description="전체 Report 목록을 반환합니다. status 쿼리로 필터링 가능.",
-        responses={200: openapi.Response("OK", ReportSerializer(many=True))}
+        operation_summary="레포트 데이터 상세",
+        operation_description="단일 ReportData를 반환합니다.",
+        tags=["ReportData"],
+        responses={200: ReportDataSerializer},
     )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
+# 레포트 관련뷰.
+class ReportViewSet(viewsets.ModelViewSet):
+    queryset = Report.objects.all().order_by("-id")
+    serializer_class = ReportSerializer
+    
+    http_method_names = ["get", "delete"]
+    
+    @swagger_auto_schema(
+        operation_summary="레포트 전체",
+        operation_description="레포트 전체 목록을 반환합니다.",
+        tags=["Report"],
+        responses={200: ReportSerializer(many=True)},
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
+    @swagger_auto_schema(
+        operation_summary="레포트 상세",
+        operation_description="특정 레포트 상세를 반환합니다.",
+        tags=["Report"],
+        responses={200: ReportSerializer},
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
-# B) 특정 사용자 리포트 조회: /users/<user_id>/reports/ 요약을 전달한다.
+    @swagger_auto_schema(
+        operation_summary="레포트 삭제",
+        operation_description="특정 레포트를 삭제합니다.",
+        tags=["Report"],
+        responses={
+            204: openapi.Response("삭제됨"),
+            409: openapi.Response("참조 중이라 삭제 불가(ProtectedError)"),
+        },
+    )
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        try:
+            self.perform_destroy(instance)
+        except ProtectedError:
+            return Response(
+                {"detail": "다른 객체가 참조 중이라 삭제할 수 없습니다."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+# B) 특정 사용자 리포트 조회: /users/<user_id>/ 요약을 전달한다.
 class ReportListByUserView(generics.ListAPIView):
     serializer_class = ReportSummarySerializer
 

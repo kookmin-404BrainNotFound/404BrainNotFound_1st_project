@@ -72,8 +72,6 @@ class PropertyBundle(models.Model):
                                          null=True, blank=True)
     user_price = models.OneToOneField(UserPrice, on_delete=models.PROTECT, related_name='bundle',
                                       null=True, blank=True)
-    avg_price = models.OneToOneField(AvgPrice, on_delete=models.PROTECT, related_name='bundle',
-                                      null=True, blank=True)
     property_registry = models.OneToOneField(PropertyRegistry, on_delete=models.PROTECT, related_name='bundle',
                                              null=True, blank=True)
     air_condition = models.OneToOneField(AirCondition, on_delete=models.PROTECT, related_name='bundle',

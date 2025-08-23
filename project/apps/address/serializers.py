@@ -1,8 +1,7 @@
 from rest_framework import serializers
 from datetime import datetime
-from typing import Optional
 from .models import (BuildingInfo, PropertyRegistry, AirCondition, UserPrice,
-                     AvgPrice)
+                     AvgPrice, PropertyBundle, Address)
 
 
 class AddressSearchSerializer(serializers.Serializer):
@@ -23,7 +22,17 @@ class GetPropertyRegistrySerializer(serializers.Serializer):
 class GetBuildingInfoSerializer(serializers.Serializer):
     roadAddr = serializers.CharField(max_length=200, required=True)
 
-### user_price serializer
+class AddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields = ["id", "road_address", "bd_nm", "adm_cd",
+                  "sgg_nm", "mt_yn", "lnbr_mnnm", "lnbr_slno", "details"]
+        read_only_fields = ["id"]
+
+    def create(self, validated_data):
+        return UserPrice.objects.create(**validated_data)
+
+
 class UserPriceSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserPrice
@@ -33,7 +42,6 @@ class UserPriceSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         return UserPrice.objects.create(**validated_data)
 
-### user_price serializer
 class BuildingInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = BuildingInfo
@@ -43,7 +51,6 @@ class BuildingInfoSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         return BuildingInfo.objects.create(**validated_data)
     
-### user_price serializer
 class AvgPriceSerializer(serializers.ModelSerializer):
     class Meta:
         model = AvgPrice
@@ -77,3 +84,20 @@ class AirConditionSerializer(serializers.ModelSerializer):
         def create(self, validated_data):
             return AvgPrice.objects.create(**validated_data)
 
+class PropertyBundleSerializer(serializers.ModelSerializer):
+    address = AddressSerializer(read_only=True)
+    avg_price = AvgPriceSerializer(read_only=True)
+    building_info = BuildingInfoSerializer(read_only=True)
+    user_price = UserPriceSerializer(read_only=True)
+    property_registry = PropertyRegistrySerializer(read_only=True)
+    air_condition = AirConditionSerializer(read_only=True)
+
+    user = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = PropertyBundle
+        fields = [
+            "id", "address", "avg_price", "building_info", "user_price",
+            "property_registry", "air_condition", "user", "created",
+        ]
+        read_only_fields = fields

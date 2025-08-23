@@ -1,3 +1,5 @@
+import inspect
+
 from rest_framework import viewsets, mixins
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -15,8 +17,12 @@ from external.address.building_info import BuildingInfoManager
 from external.address.property_registry import get_property_registry
 
 from external.address.address_manager import AddressManager
-from .serializers import AddressSearchSerializer, GetPriceSerializer, GetPropertyRegistrySerializer, GetBuildingInfoSerializer, PropertyRegistrySerializer
-from .models import PropertyRegistry
+from .serializers import (AddressSearchSerializer, GetPriceSerializer,
+                          GetPropertyRegistrySerializer, GetBuildingInfoSerializer, PropertyRegistrySerializer,
+                          UserPriceSerializer, BuildingInfoSerializer, AvgPriceSerializer,
+                          AirConditionSerializer, PropertyBundleSerializer)
+from .models import (UserPrice, BuildingInfo, AvgPrice, PropertyRegistry,
+                     AirCondition, PropertyBundle)
 
 # Create your views here.
 
@@ -24,7 +30,8 @@ class AddressSearchView(APIView):
     @swagger_auto_schema(
         operation_summary="주소 검색",
         operation_description="장소를 검색합니다.",
-        query_serializer=AddressSearchSerializer
+        query_serializer=AddressSearchSerializer,
+        tags=["address_apis"],
     )
     def get(self, request):
         serializer = AddressSearchSerializer(data=request.query_params)
@@ -46,6 +53,7 @@ class GetPriceView(APIView):
         operation_summary="전월세 가격 조회.",
         operation_description="전월세 가격을 도로명 주소로 조회합니다.",
         query_serializer=GetPriceSerializer,
+        tags=["address_apis"],
     )
     def get(self, request):
         serializer = GetPriceSerializer(data=request.query_params)
@@ -82,6 +90,7 @@ class GetPropertyRegistryView(APIView):
             description="PDF file",
             schema=openapi.Schema(type=openapi.TYPE_STRING, format="binary")
         )},
+        tags=["address_apis"],
     )
     def get(self, request):
         serializer = GetPropertyRegistrySerializer(data=request.query_params)
@@ -103,6 +112,7 @@ class GetBuildingInfoView(APIView):
         operation_summary="건물 정보 확인.",
         operation_description="건물 정보를 도로명 주소로 조회합니다.",
         query_serializer=GetBuildingInfoSerializer,
+        tags=["address_apis"],
     )
     def get(self, request):
         serializer = GetBuildingInfoSerializer(data=request.query_params)
@@ -119,5 +129,33 @@ class GetBuildingInfoView(APIView):
         info = BuildingInfoManager().makeInfo(address)
         
         return Response(info)
+
+class UserPriceViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = UserPrice.objects.all().order_by("-id")
+    serializer_class = UserPriceSerializer
     
+    
+class BuildingInfoViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = BuildingInfo.objects.all().order_by("-id")
+    serializer_class = BuildingInfoSerializer
+    
+    
+class AvgPriceViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = AvgPrice.objects.all().order_by("-id")
+    serializer_class = AvgPriceSerializer
+    
+    
+class PropertyRegistryViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = PropertyRegistry.objects.all().order_by("-id")
+    serializer_class = PropertyRegistrySerializer
+    
+    
+class AirConditionViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = AirCondition.objects.all().order_by("-id")
+    serializer_class = AirConditionSerializer    
+    
+    
+class PropertyBundleViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = PropertyBundle.objects.all().order_by("-id")
+    serializer_class = PropertyBundleSerializer    
     
