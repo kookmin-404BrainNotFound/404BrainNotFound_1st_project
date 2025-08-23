@@ -1,6 +1,6 @@
 /venv
 /.venv
-.env
+project/.env
 __pycache__/
 project/db.sqlite3
 

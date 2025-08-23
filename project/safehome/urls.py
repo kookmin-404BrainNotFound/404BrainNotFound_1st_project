@@ -24,6 +24,7 @@ from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 
+
 router = routers.DefaultRouter()
 
 schema_view = get_schema_view(
@@ -37,10 +38,19 @@ schema_view = get_schema_view(
     ),
     public=True,
     permission_classes = [permissions.AllowAny],
+    patterns=[
+        path("testing/", include("apps.testing.urls")),
+        path("user/", include("apps.users.urls")),
+        path("address/", include("apps.address.urls")),
+        path("gpt/", include("apps.gpt.urls")),
+        path("report/", include("apps.report.urls")),
+        path("api/", include("apps.image.urls")),
+    ],
     url=settings.API_URL,
 )
 
 urlpatterns = [
+    path('testing/', include('apps.testing.urls')),
     path('admin/', admin.site.urls),
     path('user/', include('apps.users.urls')),
     path('address/', include('apps.address.urls')),
@@ -51,9 +61,9 @@ urlpatterns = [
 
 
 urlpatterns += [
-    re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
-    re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+    re_path(r'^swagger(?P<format>\.json|\.yaml)$',schema_view.without_ui(cache_timeout=0),name='schema-json'),
+    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0),name='schema-swagger-ui'),
+    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0),name='schema-redoc'),
 ]
 
 # 개발환경에서 미디어 파일 제공

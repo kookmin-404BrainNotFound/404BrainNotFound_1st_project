@@ -33,6 +33,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # gpt api 키 가져오기
 API_URL = os.getenv("API_URL")
 A_PICK_KEY = os.getenv("A_PICK_KEY")
 
+# 침수정보 api 가져오기
 DATA_GO_KR_ENCODING_KEY = os.getenv("DATA_GO_KR_ENCODING_KEY")
 DATA_GO_KR_DECODING_KEY = os.getenv("DATA_GO_KR_DECODING_KEY")
 
@@ -65,6 +66,7 @@ INSTALLED_APPS = [
     'apps.gpt',
     'apps.report',
     'apps.image',
+    'apps.testing',
 ]
 
 MIDDLEWARE = [
@@ -168,4 +170,9 @@ REST_FRAMEWORK = {
     ],
 }
 
-ALLOWED_HOSTS = ['*']
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Flood Risk API",
+    "DESCRIPTION": "data.go.kr(한강홍수통제소) 침수 통계 조회 프록시",
+    "VERSION": "1.0.0",
+}
