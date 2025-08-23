@@ -8,4 +8,4 @@ project/db.sqlite3
 /project/staticfiles
 /staticfiles
 /project/media
-/project/db
+/project/db/*.sqlite3
