@@ -21,8 +21,8 @@ class MakeAvgPriceDocSerializer(serializers.Serializer):
 class ReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = Report
-        fields = ["id", "created_at", "status", "user"]
-        read_only_fields = ["id", "created_at", "user"]
+        fields = ["id", "created_at", "status", "property_bundle"]
+        read_only_fields = ["id", "created_at", "property_bundle"]
 
 # reportData serializer
 class ReportDataSerializer(serializers.ModelSerializer):

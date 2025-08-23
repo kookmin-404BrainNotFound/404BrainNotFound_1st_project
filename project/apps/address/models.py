@@ -1,14 +1,13 @@
 from django.db import models
-from apps.report.models import Report
 
 from external.address.address_manager import AddressManager
+
+from apps.users.models import User
 
 # Create your models here.
 
 # 임시로 주소를 저장한다.
 class Address(models.Model):
-    report = models.OneToOneField(Report, on_delete=models.CASCADE, related_name='address')
-
     road_address = models.CharField(max_length=255)
     bd_nm = models.CharField(max_length=100, blank=True, null=True)
     adm_cd = models.CharField(max_length=10, blank=True, null=True)
@@ -35,7 +34,6 @@ class Address(models.Model):
 
 # 임시로 사용자의 전월세가를 저장한다.
 class UserPrice(models.Model):
-    report = models.OneToOneField(Report, on_delete=models.CASCADE, related_name='user_price')
     # 전세인가?
     is_year_rent = models.BooleanField(null=False)
     security_deposit = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
@@ -43,38 +41,43 @@ class UserPrice(models.Model):
 
 # 평균값 저장 DB
 class AvgPrice(models.Model):
-    report = models.OneToOneField(Report, on_delete=models.CASCADE, related_name='avg_price')
     avg_year_price = models.FloatField(default=0.0)
     avg_month_security_price = models.FloatField(default=0.0)
     avg_month_rent = models.FloatField(default=0.0)
     
 # 건축물대장부 저장.
 class BuildingInfo(models.Model):
-    report = models.OneToOneField(
-        Report,
-        on_delete=models.CASCADE,
-        related_name="building_info",
-    )
     # buildingInfo의 string data.
     description = models.JSONField(default=dict)
 
 # 등기부등본 저장
 class PropertyRegistry(models.Model):
-    report = models.OneToOneField(
-        Report,
-        on_delete=models.CASCADE,
-        related_name="property_registry",
-    )
     pdf = models.FileField(upload_to='files/%Y/%m/%d/')
     created = models.DateTimeField(auto_now_add=True)
     
 # 공기질 데이터 저장.
 # 등기부등본 저장
 class AirCondition(models.Model):
-    report = models.OneToOneField(
-        Report,
-        on_delete=models.CASCADE,
-        related_name="air_condition",
-    )
     data = models.JSONField(default=dict)
+    created = models.DateTimeField(auto_now_add=True)
+
+
+# 공통 묶음: 같은 주소/시세/건물정보를 한 덩어리로
+class PropertyBundle(models.Model):
+    address = models.OneToOneField(Address, on_delete=models.PROTECT, related_name='bundle',
+                                   null=True, blank=True)
+    avg_price = models.OneToOneField(AvgPrice, on_delete=models.PROTECT, related_name='bundle',
+                                     null=True, blank=True)
+    building_info = models.OneToOneField(BuildingInfo, on_delete=models.PROTECT, related_name='bundle',
+                                         null=True, blank=True)
+    user_price = models.OneToOneField(UserPrice, on_delete=models.PROTECT, related_name='bundle',
+                                      null=True, blank=True)
+    avg_price = models.OneToOneField(AvgPrice, on_delete=models.PROTECT, related_name='bundle',
+                                      null=True, blank=True)
+    property_registry = models.OneToOneField(PropertyRegistry, on_delete=models.PROTECT, related_name='bundle',
+                                             null=True, blank=True)
+    air_condition = models.OneToOneField(AirCondition, on_delete=models.PROTECT, related_name='bundle',
+                                         null=True, blank=True)
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bundles')
     created = models.DateTimeField(auto_now_add=True)

@@ -25,7 +25,7 @@ from external.address.property_registry import get_property_registry
 from apps.address.serializers import (PropertyRegistrySerializer, AirConditionSerializer,
                                       UserPriceSerializer, BuildingInfoSerializer, AvgPriceSerializer)
 from apps.address.models import (Address, UserPrice, BuildingInfo, AvgPrice, PropertyRegistry,
-                                 AirCondition)
+                                 AirCondition, PropertyBundle)
 
 from external.client.seoul_data import DataSeoulClient
 from external.gpt.gpt_manager import *
@@ -55,10 +55,13 @@ class StartReportView(APIView):
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
-            return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # 새 property bundle 생성.
+        property_bundle = PropertyBundle.objects.create(user=user)
 
         # 새 report 객체 생성.
-        report = Report.objects.create(user=user)
+        report = Report.objects.create(property_bundle=property_bundle)
 
         # 주소 검색 및 Address 객체 만들기.
         address_manager = AddressManager(roadAddr=vd["road_address"])
@@ -69,7 +72,6 @@ class StartReportView(APIView):
 
         # 모델 필드명에 맞춰 저장 (road_addr)
         address = Address.objects.create(
-            report=report,            
             road_address=address_manager.roadAddr,
             bd_nm=address_manager.bdNm,
             adm_cd=address_manager.admCd,
@@ -79,11 +81,15 @@ class StartReportView(APIView):
             lnbr_slno=address_manager.lnbrSlno,
             details=address_manager.details,
         )
+        # address를 property_bundle과 연결.
+        property_bundle.address = address
+        property_bundle.save(update_fields=["address"])
 
         # 응답은 원시 타입/딕셔너리만
         return Response(
             {
                 "report_id": report.id,
+                "property_bundle_id": property_bundle.id,
                 "address_id": address.id,
                 "address": address_manager.as_dict(),
             },
@@ -105,10 +111,15 @@ class SaveUserPriceView(APIView):
         except Report.DoesNotExist:
             return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
 
+        # property bundle 가져오기.
+        property_bundle = report.property_bundle
+
         serializer = UserPriceSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         # 가격 저장
-        serializer.save(report=report)
+        user_price = serializer.save()
+        property_bundle.user_price = user_price
+        property_bundle.save(update_fields=["user_price"])
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -126,15 +137,20 @@ class MakeBuildingInfoView(APIView):
         except Report.DoesNotExist:
             return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
         
+        # property_bundle 가져오기.
+        property_bundle = report.property_bundle
+
         # 주소 가져오기.
-        address_manager:AddressManager = report.address.to_address_manager()
+        address_manager:AddressManager = property_bundle.address.to_address_manager()
         address_manager.initialize(research=False)
         
         # 건축물대장부
         info = BuildingInfoManager().makeInfo(address_manager)
         serializer = BuildingInfoSerializer(data={"description": info})
         serializer.is_valid(raise_exception=True)
-        serializer.save(report=report)
+        building_info = serializer.save()
+        property_bundle.building_info = building_info
+        property_bundle.save(update_fields=["building_info"])
         
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -156,8 +172,11 @@ class MakeAvgPriceView(APIView):
         except Report.DoesNotExist:
             return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
         
+        # property_bundle 가져오기.
+        property_bundle = report.property_bundle
+
         # 주소 가져오기.
-        address_manager:AddressManager = report.address.to_address_manager()
+        address_manager:AddressManager = property_bundle.address.to_address_manager()
         address_manager.initialize(research=False)
         
         # 전월세가분석
@@ -166,11 +185,14 @@ class MakeAvgPriceView(APIView):
             address_manager=address_manager
         )
         
-        serialzier = AvgPriceSerializer(data=price_info)
-        serialzier.is_valid(raise_exception=True)
-        serialzier.save(report=report)
-        
-        return Response(serialzier.data, status=status.HTTP_201_CREATED)
+        serializer = AvgPriceSerializer(data=price_info)
+        serializer.is_valid(raise_exception=True)
+        avg_price = serializer.save()
+
+        property_bundle.avg_price = avg_price
+        property_bundle.save(update_fields=["avg_price"])
+    
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 # 등기부등본 조회뷰.
 class MakePropertyRegistryView(APIView):
@@ -187,8 +209,11 @@ class MakePropertyRegistryView(APIView):
         except Report.DoesNotExist:
             return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
         
+        # property_bundle 가져오기.
+        property_bundle = report.property_bundle
+
         # 주소 가져오기.
-        address_manager:AddressManager = report.address.to_address_manager()
+        address_manager:AddressManager = property_bundle.address.to_address_manager()
         address_manager.initialize(research=False)
         
         # 등기부등본 조회하기.
@@ -196,10 +221,13 @@ class MakePropertyRegistryView(APIView):
         pdf_bytes = get_property_registry(full_addr=full_addr)
         filename = "등기부등본.pdf"
         
-        property_registry = PropertyRegistry(report=report)
+        property_registry = PropertyRegistry()
         property_registry.pdf.save(filename, ContentFile(pdf_bytes), save=True)
         
-        serializer = PropertyRegistrySerializer(property_registry, context={"request":request})
+        property_bundle.property_registry = property_registry
+        property_bundle.save(update_fields=["property_registry"])
+
+        serializer = PropertyRegistrySerializer(property_registry)
         
         return Response(serializer.data, status=status.HTTP_201_CREATED)
         
@@ -218,8 +246,11 @@ class MakeAirConditionView(APIView):
         except Report.DoesNotExist:
             return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
         
+        # property_bundle 가져오기.
+        property_bundle = report.property_bundle
+
         # 주소 가져오기.
-        address_manager:AddressManager = report.address.to_address_manager()
+        address_manager:AddressManager = property_bundle.address.to_address_manager()
         address_manager.initialize(research=False)
 
         client = DataSeoulClient()
@@ -228,8 +259,10 @@ class MakeAirConditionView(APIView):
         # db에 임시 저장하기.
         serializer = AirConditionSerializer(data=response)
         serializer.is_valid()
-        serializer.save(report=report)
+        air_condition = serializer.save()
 
+        property_bundle.air_condition = air_condition
+        property_bundle.save(update_fields=["air_condition"])
         return Response(serializer.data)
 
         
@@ -246,19 +279,21 @@ class MakeReportFinalView(APIView):
         except Report.DoesNotExist:
             return Response({'error': 'ReportRun not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        ##### 위험도측정 ##### 
+
+        property_bundle = report.property_bundle
+        ##### 위험도측정 #####
         # 주소 만들기
-        address_manager:AddressManager = report.address.to_address_manager()
+        address_manager:AddressManager = property_bundle.address.to_address_manager()
         address_manager.initialize(research=False)
                 
         # 건축물대장부 그냥 string으로 가져온다.
-        building_info = report.building_info.description
+        building_info = property_bundle.building_info.description
         # 전월세가분석
-        avg_price:AvgPrice = report.avg_price
+        avg_price:AvgPrice = property_bundle.avg_price
         price_info = AvgPriceSerializer(avg_price).data
         
         # user의 전월세가
-        user_price:UserPrice = report.user_price
+        user_price:UserPrice = property_bundle.user_price
         user_price_info = UserPriceSerializer(user_price).data
 
         # 파일을 제외한 dict
@@ -270,7 +305,7 @@ class MakeReportFinalView(APIView):
         # 등기부등본 있으면 가져오기.
         pdf_bytes = None
         try:
-            pr = PropertyRegistry.objects.select_related("report").get(report_id=report_id)
+            pr = property_bundle.property_registry
             with pr.pdf.open("rb") as f:
                 pdf_bytes = f.read()
         except PropertyRegistry.DoesNotExist:
@@ -281,13 +316,13 @@ class MakeReportFinalView(APIView):
         ##### 적합도 측정 #####
 
         # user를 가져오기.
-        user:User = report.user
+        user:User = property_bundle.user
         # usertendency를 가져오기.
         user_tendency = UserTendencyReadSerializer(user.user_tendency).data
         print(user_tendency)
 
         # 공기질 가져오기.
-        air_condiion = AirConditionSerializer(report.air_condition).data
+        air_condiion = AirConditionSerializer(property_bundle.air_condition).data
         print(air_condiion)   
         
         # gpt에 물어본다. 처음에는 파일을 제외하고, 파일까지 첨부한 후 물어본다.
@@ -440,7 +475,7 @@ class ReportListByUserView(generics.ListAPIView):
 
         up = UserPrice.objects.filter(report_id=OuterRef("pk"))
         qs = (Report.objects
-              .filter(user_id=user_id)
+              .filter(property_bundle__user_id=user_id)
               .annotate(
                   danger_score=Subquery(danger_sq),
                   fit_score=Subquery(fit_sq),

@@ -27,11 +27,8 @@ class GetBuildingInfoSerializer(serializers.Serializer):
 class UserPriceSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserPrice
-        fields = ["id", "report", "is_year_rent", "security_deposit", "monthly_rent"]
+        fields = ["id", "is_year_rent", "security_deposit", "monthly_rent"]
         read_only_fields = ["id"]
-        extra_kwargs = {
-            "report": {"write_only": True, "required":False},
-        }
 
     def create(self, validated_data):
         return UserPrice.objects.create(**validated_data)
@@ -40,11 +37,8 @@ class UserPriceSerializer(serializers.ModelSerializer):
 class BuildingInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = BuildingInfo
-        fields = ["id", "report", "description"]
+        fields = ["id", "description"]
         read_only_fields = ["id"]
-        extra_kwargs = {
-            "report": {"write_only": True, "required":False},
-        }
 
     def create(self, validated_data):
         return BuildingInfo.objects.create(**validated_data)
@@ -53,23 +47,19 @@ class BuildingInfoSerializer(serializers.ModelSerializer):
 class AvgPriceSerializer(serializers.ModelSerializer):
     class Meta:
         model = AvgPrice
-        fields = ["id", "report", "avg_year_price", "avg_month_security_price", "avg_month_rent"]
+        fields = ["id", "avg_year_price", "avg_month_security_price", "avg_month_rent"]
         read_only_fields = ["id"]
-        extra_kwargs = {
-            "report": {"write_only": True, "required":False},
-        }
 
     def create(self, validated_data):
         return AvgPrice.objects.create(**validated_data)
 
 
 class PropertyRegistrySerializer(serializers.ModelSerializer):
-    report_id = serializers.IntegerField(source="report.id", read_only=True)
     pdf_url = serializers.SerializerMethodField()
 
     class Meta:
         model = PropertyRegistry
-        fields = ["id", "report", "report_id", "pdf", "pdf_url", "created"]
+        fields = ["id", "pdf", "pdf_url", "created"]
         read_only_fields = ["id", "created"]
 
     def get_pdf_url(self, obj):
@@ -81,11 +71,8 @@ class PropertyRegistrySerializer(serializers.ModelSerializer):
 class AirConditionSerializer(serializers.ModelSerializer):
     class Meta:
         model = AirCondition
-        fields = ["id", "report", "data", "created"]
+        fields = ["id", "data", "created"]
         read_only_fields = ["id", "created"]
-        extra_kwargs = {
-            "report": {"write_only": True, "required":False},
-        }
         
         def create(self, validated_data):
             return AvgPrice.objects.create(**validated_data)

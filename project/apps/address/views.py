@@ -70,23 +70,6 @@ class GetPriceView(APIView):
         
         return Response(data)
 
-class PropertyRegistryViewSet(mixins.ListModelMixin,
-                              mixins.RetrieveModelMixin,
-                              viewsets.GenericViewSet):
-    queryset = (PropertyRegistry.objects
-                .select_related("report")
-                .order_by("-created"))
-    serializer_class = PropertyRegistrySerializer
-
-    filterset_fields = ["report"]  # ?report=<id> 자동 지원
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        report_id = self.request.query_params.get("report_id")
-        if report_id:
-            qs = qs.filter(report_id=report_id)
-        return qs
-
     
 # 등기부등본 가져오기.
 class GetPropertyRegistryView(APIView):

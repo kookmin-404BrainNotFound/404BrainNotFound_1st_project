@@ -1,6 +1,6 @@
 from django.db import models
 
-from apps.users.models import User
+from apps.address.models import PropertyBundle
 # Create your models here.
 
 # 레포트 모델.
@@ -12,8 +12,8 @@ class Report(models.Model):
         ('completed', 'Completed'),
         ('failed', 'Failed')
     ], default='running')
-    user = models.ForeignKey(
-        User,
+    property_bundle = models.OneToOneField(
+        PropertyBundle,
         on_delete=models.CASCADE,
         related_name="reports",
         blank=True,
@@ -31,8 +31,8 @@ class ReportData(models.Model):
         on_delete=models.CASCADE, 
         related_name="report_data"
     )
-    score = models.IntegerField(blank=True, default="")
-    description = models.TextField(blank=True, default=True)
+    score = models.IntegerField(blank=True, null=True, default=None)
+    description = models.TextField(blank=True, default="")
     created = models.DateTimeField(auto_now_add=True)
     type = models.CharField(
         max_length=10,
