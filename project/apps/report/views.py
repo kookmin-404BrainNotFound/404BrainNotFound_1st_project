@@ -388,8 +388,9 @@ class MakeReportFinalView(APIView):
         messages.append(create_message("user", "분석해줘."))
         result = ask_gpt(messages, model='gpt-4.1')
         
-        # 파일 삭제.
-        delete_gpt_file(pdf_file_id)
+        # 파일 삭제. gpt에서.
+        if(pdf_file_id):
+            delete_gpt_file(pdf_file_id)
         
         # json으로 파싱
         data = json.loads(result)

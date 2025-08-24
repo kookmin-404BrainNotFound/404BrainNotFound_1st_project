@@ -3,7 +3,7 @@ version: "3.9"
 services:
   safehome:
     container_name: safehome
-    image: seokjun99/safehome:1.0.0
+    image: poatansanyo/safehome:1.0.0
     build:
       context: ./project
     ports:
@@ -21,7 +21,7 @@ services:
           "
   nginx:
     container_name: safehome_nginx
-    image: seokjun99/safehome_nginx:1.0.0
+    image: poatansanyo/safehome_nginx:1.0.0
     build:
       context: ./nginx
     ports:
