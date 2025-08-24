@@ -11,7 +11,7 @@ from drf_spectacular.utils import (
 )
 
 from .models import Contract
-from .serializers import ContractSerializer
+from .serializers import ContractSerializer, UploadImagesSerializer, UploadResultSerializer, UploadResultItemSerializer
 
 from external.gpt.gpt_manager import *
 
@@ -26,6 +26,13 @@ class ContractViewSet(ModelViewSet):
 
 # gpt에 업로드. 주소를 파악하라고 함. 여러개를 업로드 가능.
 class StartContractView(APIView):
+    @extend_schema(
+        tags=["Contract"],
+        summary="이미지 업로드 (GPT file_id 발급)",
+        description="여러 이미지를 받아 OpenAI Files API에 업로드하고 file_id 목록을 반환합니다.",
+        request={"multipart/form-data": UploadImagesSerializer},
+        responses={201: UploadResultSerializer, 400: OpenApiTypes.OBJECT, 502: OpenApiTypes.OBJECT},
+    )
     def post(self, request, *args, **kwargs):
         files = request.FILES.getlist("images")
         if not files:

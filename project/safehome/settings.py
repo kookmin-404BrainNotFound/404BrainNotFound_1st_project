@@ -30,7 +30,6 @@ AIR_QUALITY_KEY = os.getenv("AIR_QUALITY_KEY") # 대기질 api 키 가져오기
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # gpt api 키 가져오기
 
-API_URL = os.getenv("API_URL")
 A_PICK_KEY = os.getenv("A_PICK_KEY")
 
 DATA_GO_KR_ENCODING_KEY = os.getenv("DATA_GO_KR_ENCODING_KEY")
@@ -185,5 +184,6 @@ SPECTACULAR_SETTINGS = {
         {"url": "http://ec2-13-124-113-86.ap-northeast-2.compute.amazonaws.com:8000", "description": "server8000"},
         {"url": "http://ec2-13-124-113-86.ap-northeast-2.compute.amazonaws.com:80", "description": "server80"},
     ],
+    'COMPONENT_SPLIT_REQUEST': True,
 }
 
