@@ -371,7 +371,7 @@ class MakeReportFinalView(APIView):
         messages.append(create_message("user", str(infos)))
         # gpt에게 등기부등본 보내기.
         if pdf_bytes is not None:
-            pdf_file_id = get_gpt_file_id(pdf_bytes, 'gpt-4.1')
+            pdf_file_id = get_gpt_file_id(pdf_bytes, "registry.pdf", "user_data")
             message = create_message("user", [
                 {"type": "input_file", "file_id": pdf_file_id},
                 {"type": "input_text", "text": "등기부등본 파일이야."}

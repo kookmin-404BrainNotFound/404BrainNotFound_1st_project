@@ -25,16 +25,13 @@ def create_message(role: str, content):
 
     return message
 
-# gpt에게 파일을 보내고 id를 리턴받는다.
-def get_gpt_file_id(pdf_bytes: bytes, model=MODEL):
-    buffer = BytesIO(pdf_bytes)
-    buffer.name = "registry.pdf"
-    
+def get_gpt_file_id(file_bytes: bytes, filename: str = "image.jpg", purpose: str = "user_data"):
+    buf = BytesIO(file_bytes)
+    buf.name = filename                 
     uploaded = CLIENT.files.create(
-        file=buffer,
-        purpose="user_data"
+        file=buf,                       
+        purpose=purpose                 
     )
-    
     return uploaded.id
 
 def delete_gpt_file(file_id):

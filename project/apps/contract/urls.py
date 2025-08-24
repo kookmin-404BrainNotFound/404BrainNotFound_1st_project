@@ -1,15 +1,13 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ContractViewSet
+from .views import ContractViewSet, StartContractView
 
 router = DefaultRouter()
 router.register('', ContractViewSet, basename='image')
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("startContract/", StartContractView.as_view(), name="start_contract")
 ]
 
 
-# urlpatterns = [
-#     path('upload/', upload_image, name="upload_image"),
-# ]
+urlpatterns += router.urls
