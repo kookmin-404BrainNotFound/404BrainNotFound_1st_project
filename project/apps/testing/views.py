@@ -4,21 +4,12 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
 
 from .serializers import FloodDepthItemSerializer
 
 from external.client.flood import FloodRiskClient
 
 class FloodDepthProxyView(APIView):
-    @swagger_auto_schema(
-        operation_summary="dfsdfdsfsdsf",
-        operation_description="fdsfdsgdsf",
-        query_serializer=FloodDepthItemSerializer,
-        responses={200: "OK"}
-
-    )
     def get(self, request, *args, **kwargs):
         stdg_ctpv_cd = request.query_params.get("stdgCtpvCd")
         stdg_sgg_cd  = request.query_params.get("stdgSggCd")

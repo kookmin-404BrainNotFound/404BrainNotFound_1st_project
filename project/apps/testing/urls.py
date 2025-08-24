@@ -5,4 +5,4 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 urlpatterns = [
     path("flood-depth/", FloodDepthProxyView.as_view(), name="testing-flood-depth"),
-    ]
+]
