@@ -7,10 +7,10 @@ class BuildingInfoManager:
         self.info = {}
         
     def makeInfo(self, address:AddressManager):
-        client = DataGoKrClient(address)
+        client = DataGoKrClient()
         
         # 건축물대장 총괄표제부 조회
-        brTitleInfo = client.getBuildingAPI("/getBrTitleInfo")
+        brTitleInfo = client.getBuildingAPI(path="/getBrTitleInfo", address=address)
         
         item = brTitleInfo.get("response").get("body").get("items").get("item")[0]
         # 주용도코드명

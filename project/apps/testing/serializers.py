@@ -16,3 +16,8 @@ class FloodDepthItemSerializer(serializers.Serializer):
 class FloodDepthResponseSerializer(serializers.Serializer):
     header = serializers.DictField()
     items  = FloodDepthItemSerializer(many=True)
+
+
+class RoadAddressSerializer(serializers.Serializer):
+    road_address = serializers.CharField()
+    
