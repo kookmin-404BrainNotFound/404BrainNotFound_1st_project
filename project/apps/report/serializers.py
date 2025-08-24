@@ -33,6 +33,7 @@ class ReportDataSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "report": {"write_only": True, "required":False},
         }
+        
 
     def create(self, validated_data):
         return ReportData.objects.create(**validated_data)

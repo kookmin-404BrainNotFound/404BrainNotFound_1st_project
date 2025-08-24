@@ -417,7 +417,7 @@ class ReportDataViewSet(viewsets.ReadOnlyModelViewSet):
     
     @extend_schema(
         summary="레포트 데이터 목록",
-        description="전체 혹은 report ID로 필터링된 데이터를 반환합니다.",
+        description="전체 혹은 reportData ID로 필터링된 데이터를 반환합니다.",
         tags=["ReportData"],
         responses={200: ReportDataSerializer(many=True)},
     )
@@ -433,6 +433,9 @@ class ReportDataViewSet(viewsets.ReadOnlyModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
     
+# get reportData by report id.
+class 
+
 # 레포트 관련뷰.
 class ReportViewSet(viewsets.ModelViewSet):
     queryset = Report.objects.all().order_by("-id")
