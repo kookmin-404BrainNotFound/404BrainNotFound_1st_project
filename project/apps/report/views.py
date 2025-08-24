@@ -310,6 +310,7 @@ class MakeReportFinalView(APIView):
 
         # 파일을 제외한 dict
         infos = {
+            "address": address_manager.roadAddr,
             "building_info": building_info,
             "user_price_info": user_price_info,
             "price_info": price_info,
@@ -434,7 +435,21 @@ class ReportDataViewSet(viewsets.ReadOnlyModelViewSet):
         return super().retrieve(request, *args, **kwargs)
     
 # get reportData by report id.
-class 
+class GetReportDataByReportIdView(APIView):
+    @extend_schema(
+        summary="레포트 데이터들을(위험/적합도) report_id로 조회.",
+        tags=["ReportData"],
+    )
+    def get(self, request, report_id):
+        try:
+            report = Report.objects.get(id=report_id)
+        except Report.DoesNotExist:
+            return Response({'error': 'ReportRun not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # reportdata들 가져오기.
+        report_data_list = report.report_data.all()
+        serializer = ReportDataSerializer(report_data_list, many=True)
+        return Response(serializer.data, status=200)
 
 # 레포트 관련뷰.
 class ReportViewSet(viewsets.ModelViewSet):

@@ -1,6 +1,6 @@
 from .views import (StartReportView, SaveUserPriceView, MakeBuildingInfoView, 
                     MakeReportFinalView, MakeAvgPriceView, MakePropertyRegistryView, ReportListByUserView,
-                    MakeAirConditionView, ReportDataViewSet, ReportViewSet)
+                    MakeAirConditionView, ReportDataViewSet, ReportViewSet, GetReportDataByReportIdView)
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
@@ -17,6 +17,7 @@ urlpatterns = [
     path('<int:report_id>/makePropertyRegistry/', MakePropertyRegistryView.as_view(), name='make_property_registry'),
     path('<int:report_id>/makeAirCondition/', MakeAirConditionView.as_view(), name='make_air_condition'),
     path('<int:report_id>/makeReport/', MakeReportFinalView.as_view(), name='make_report'),
+    path('getReportByReportId/<int:report_id>/', GetReportDataByReportIdView.as_view(), name="get_report_by_report_id"),
 ]
 
 urlpatterns += router.urls

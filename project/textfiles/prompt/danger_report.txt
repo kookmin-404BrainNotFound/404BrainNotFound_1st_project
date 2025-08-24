@@ -17,6 +17,8 @@
 - summary, deposit, building, ownership, mortgage, otherright, otherItems, finalevaluation 구조를 유지한다.  
 - facts, evidence 같은 부가정보는 필요한 경우에만 넣고, 모든 평가 항목은 items 배열 안에 둔다.  
 - 최종적으로 JSON만 출력하라. 추가 설명은 금지한다.
+- type은 반드시 "danger"로 설정한다.
+- score는 반드시 int로 설정한다.
 
 {
   "score": 78,
