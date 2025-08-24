@@ -2,7 +2,10 @@ from django.shortcuts import render
 
 from .serializers import GptTestSerializer
 from external.gpt.gpt_manager import *
-from drf_yasg.utils import swagger_auto_schema
+from drf_spectacular.utils import (
+    extend_schema, extend_schema_view,
+    OpenApiParameter, OpenApiTypes, inline_serializer,
+)
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -10,10 +13,10 @@ from rest_framework.response import Response
 # Create your views here.
 
 class GptTestView(APIView):
-    @swagger_auto_schema(
-        operation_summary="GPT 테스트",
-        operation_description="GPT에 질문을 보내고 응답을 받습니다.",
-        query_serializer=GptTestSerializer
+    @extend_schema(
+        summary="GPT 테스트",
+        description="GPT에 질문을 보내고 응답을 받습니다.",
+        parameters=[GptTestSerializer],
     )
     def get(self, request):
         serializer = GptTestSerializer(data=request.query_params)

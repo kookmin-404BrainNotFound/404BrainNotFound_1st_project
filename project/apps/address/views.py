@@ -3,8 +3,10 @@ import inspect
 from rest_framework import viewsets, mixins
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
+from drf_spectacular.utils import (
+    extend_schema, extend_schema_view,
+    OpenApiParameter, OpenApiTypes, inline_serializer,
+)
 
 from django.shortcuts import render
 from io import BytesIO
@@ -27,11 +29,12 @@ from .models import (UserPrice, BuildingInfo, AvgPrice, PropertyRegistry,
 # Create your views here.
 
 class AddressSearchView(APIView):
-    @swagger_auto_schema(
-        operation_summary="주소 검색",
-        operation_description="장소를 검색합니다.",
-        query_serializer=AddressSearchSerializer,
+    @extend_schema(
+        summary="주소 검색",
+        description="장소를 검색합니다.",
+        parameters=[AddressSearchSerializer],
         tags=["address_apis"],
+        responses={200: OpenApiTypes.OBJECT}
     )
     def get(self, request):
         serializer = AddressSearchSerializer(data=request.query_params)
@@ -49,10 +52,10 @@ class AddressSearchView(APIView):
 
 # 전월세가 가져오기 검색 API에서 파싱해서 다시 전달필요함.
 class GetPriceView(APIView):
-    @swagger_auto_schema(
-        operation_summary="전월세 가격 조회.",
-        operation_description="전월세 가격을 도로명 주소로 조회합니다.",
-        query_serializer=GetPriceSerializer,
+    @extend_schema(
+        summary="전월세 가격 조회.",
+        description="전월세 가격을 도로명 주소로 조회합니다.",
+        parameters=[GetPriceSerializer],
         tags=["address_apis"],
     )
     def get(self, request):
@@ -81,15 +84,12 @@ class GetPriceView(APIView):
     
 # 등기부등본 가져오기.
 class GetPropertyRegistryView(APIView):
-    @swagger_auto_schema(
-        operation_summary="등기부등본 조회",
-        operation_description="도로명 주소로 등기부등본을 조회합니다.",
-        query_serializer=GetPropertyRegistrySerializer,
-        produces=["application/pdf"],
-        responses={200: openapi.Response(
-            description="PDF file",
-            schema=openapi.Schema(type=openapi.TYPE_STRING, format="binary")
-        )},
+    serializer_class = GetPropertyRegistrySerializer
+    @extend_schema(
+        summary="등기부등본 조회",
+        description="도로명 주소로 등기부등본을 조회합니다.",
+        parameters=[GetPropertyRegistrySerializer],
+        responses={200: (OpenApiTypes.BINARY, "application/pdf")},
         tags=["address_apis"],
     )
     def get(self, request):
@@ -101,18 +101,20 @@ class GetPropertyRegistryView(APIView):
         pdf_bytes = get_property_registry(full_addr=full_addr)
         return FileResponse(
             BytesIO(pdf_bytes),
-            as_attachment=True,                # 다운로드 강제 (뷰어로 열고 싶으면 False)
-            filename="output.pdf",             # 원하면 동적으로 바꾸세요
+            as_attachment=True,
+            filename="output.pdf",
             content_type="application/pdf",
         )
 
 # 건물 정보 가져오기.
 class GetBuildingInfoView(APIView):
-    @swagger_auto_schema(
-        operation_summary="건물 정보 확인.",
-        operation_description="건물 정보를 도로명 주소로 조회합니다.",
-        query_serializer=GetBuildingInfoSerializer,
+    serializer_class = GetBuildingInfoSerializer
+    @extend_schema(
+        summary="건물 정보 확인.",
+        description="건물 정보를 도로명 주소로 조회합니다.",
+        parameters=[GetBuildingInfoSerializer],
         tags=["address_apis"],
+        responses={200: OpenApiTypes.OBJECT},
     )
     def get(self, request):
         serializer = GetBuildingInfoSerializer(data=request.query_params)

@@ -7,7 +7,8 @@ colorama==0.4.6
 distro==1.9.0
 Django==5.2.5
 djangorestframework==3.16.1
-drf-yasg==1.21.10
+drf-spectacular
+drf-spectacular-sidecar
 h11==0.16.0
 httpcore==1.0.9
 httpx==0.28.1

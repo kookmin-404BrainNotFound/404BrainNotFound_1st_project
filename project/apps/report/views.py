@@ -8,8 +8,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics, viewsets
 
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
+from drf_spectacular.utils import (
+    extend_schema, extend_schema_view,
+    OpenApiParameter, OpenApiTypes, inline_serializer,
+)
 
 from apps.users.models import User, UserTendency
 from apps.users.serializers import UserTendencyReadSerializer
@@ -34,17 +36,20 @@ import json
 
 # Create your views here.
 
-report_id_param = openapi.Parameter(
-    name="report_id", in_=openapi.IN_PATH, type=openapi.TYPE_INTEGER,
-    description="대상 Report ID", required=True,
+report_id_param = OpenApiParameter(
+    name="report_id",
+    type=OpenApiTypes.INT,                 # ✅ 타입
+    location=OpenApiParameter.PATH,        # ✅ 경로 변수
+    description="대상 Report ID",
+    required=True,
 )
 
 # 보고서 작성을 시작한다.
 class StartReportView(APIView):
-    @swagger_auto_schema(
-        operation_summary="보고서 시작",
-        operation_description="새로운 보고서를 시작합니다.",
-        query_serializer=StartReportSerializer
+    @extend_schema(
+        summary="보고서 시작",
+        description="새로운 보고서를 시작합니다.",
+        parameters=[StartReportSerializer],
     )
     def post(self, request):
         serializer = StartReportSerializer(data=request.query_params)
@@ -98,11 +103,13 @@ class StartReportView(APIView):
     
 # 전월세가저장.
 class SaveUserPriceView(APIView):
-    @swagger_auto_schema(
-        operation_summary="전월세가 저장",
-        operation_description="전월세가 정보를 저장합니다.",
-        query_serializer=SaveUserPriceDocSerializer,
-        manual_parameters=[report_id_param],
+    @extend_schema(
+        summary="전월세가 저장",
+        description="전월세가 정보를 저장합니다.",
+        parameters=[
+            SaveUserPriceDocSerializer,
+            report_id_param,
+            ],
         tags=["report_danger"],
     )
     def post(self, request, report_id):
@@ -125,10 +132,10 @@ class SaveUserPriceView(APIView):
 
 # 건축물대장부 가져오기.
 class MakeBuildingInfoView(APIView):
-    @swagger_auto_schema(
-        operation_summary="건축물대장부 저장",
-        operation_description="건축물대장부를 저장합니다.",
-        manual_parameters=[report_id_param],
+    @extend_schema(
+        summary="건축물대장부 저장",
+        description="건축물대장부를 저장합니다.",
+        parameters=[report_id_param],
         tags=["report_danger"],
     )
     def post(self, request, report_id):
@@ -156,11 +163,13 @@ class MakeBuildingInfoView(APIView):
 
 # 전월세가 평균 계산하기.
 class MakeAvgPriceView(APIView):
-    @swagger_auto_schema(
-        operation_summary="전월세가 평균계산",
-        operation_description="전월세가 평균을 계산해 저장합니다.",
-        query_serializer=MakeAvgPriceDocSerializer,
-        manual_parameters=[report_id_param],
+    @extend_schema(
+        summary="전월세가 평균계산",
+        description="전월세가 평균을 계산해 저장합니다.",
+        parameters=[
+            MakeAvgPriceDocSerializer,
+            report_id_param,
+        ],
         tags=["report_danger"],
     )
     def post(self, request, report_id):
@@ -196,11 +205,13 @@ class MakeAvgPriceView(APIView):
 
 # 등기부등본 조회뷰.
 class MakePropertyRegistryView(APIView):
-    @swagger_auto_schema(
-        operation_summary="등기부등본 저장",
-        operation_description="등기부등본을 저장합니다.",
-        query_serializer=MakeAvgPriceDocSerializer,
-        manual_parameters=[report_id_param],
+    @extend_schema(
+        summary="등기부등본 저장",
+        description="등기부등본을 저장합니다.",
+        parameters=[
+            MakeAvgPriceDocSerializer,
+            report_id_param,
+        ],
         tags=["report_danger"],
     )
     def post(self, request, report_id):
@@ -234,10 +245,10 @@ class MakePropertyRegistryView(APIView):
         
 ####### 적합도 시작 ########
 class MakeAirConditionView(APIView):
-    @swagger_auto_schema(
-        operation_summary="공기질 데이터 저장.",
-        operation_description="공기질 데이터를 저장합니다.",
-        manual_parameters=[report_id_param],
+    @extend_schema(
+        summary="공기질 데이터 저장.",
+        description="공기질 데이터를 저장합니다.",
+        parameters=[report_id_param],
         tags=["report_fit"],
     )
     def post(self, request, report_id):
@@ -268,10 +279,10 @@ class MakeAirConditionView(APIView):
         
 # 마지막 레포트 뷰. gpt에게 맡기는 역할만 수행.
 class MakeReportFinalView(APIView):
-    @swagger_auto_schema(
-        operation_summary="보고서 생성",
-        operation_description="보고서를 생성합니다.",
-        manual_parameters=[report_id_param],
+    @extend_schema(
+        summary="보고서 생성",
+        description="보고서를 생성합니다.",
+        parameters=[report_id_param],
     )
     def post(self, request, report_id):
         try:
@@ -422,18 +433,18 @@ class ReportDataViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields  = ["report"]              # ?report=1
     ordering_fields   = ["created", "type"]     # ?ordering=type or -created
     
-    @swagger_auto_schema(
-        operation_summary="레포트 데이터 목록",
-        operation_description="전체 혹은 report ID로 필터링된 데이터를 반환합니다.",
+    @extend_schema(
+        summary="레포트 데이터 목록",
+        description="전체 혹은 report ID로 필터링된 데이터를 반환합니다.",
         tags=["ReportData"],
         responses={200: ReportDataSerializer(many=True)},
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @swagger_auto_schema(
-        operation_summary="레포트 데이터 상세",
-        operation_description="단일 ReportData를 반환합니다.",
+    @extend_schema(
+        summary="레포트 데이터 상세",
+        description="단일 ReportData를 반환합니다.",
         tags=["ReportData"],
         responses={200: ReportDataSerializer},
     )
@@ -447,31 +458,30 @@ class ReportViewSet(viewsets.ModelViewSet):
     
     http_method_names = ["get", "delete"]
     
-    @swagger_auto_schema(
-        operation_summary="레포트 전체",
-        operation_description="레포트 전체 목록을 반환합니다.",
+    @extend_schema(
+        summary="레포트 전체",
+        description="레포트 전체 목록을 반환합니다.",
         tags=["Report"],
         responses={200: ReportSerializer(many=True)},
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @swagger_auto_schema(
-        operation_summary="레포트 상세",
-        operation_description="특정 레포트 상세를 반환합니다.",
+    @extend_schema(
+        summary="레포트 상세",
+        description="특정 레포트 상세를 반환합니다.",
         tags=["Report"],
         responses={200: ReportSerializer},
     )
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    @swagger_auto_schema(
-        operation_summary="레포트 삭제",
-        operation_description="특정 레포트를 삭제합니다.",
+    @extend_schema(
+        summary="레포트 삭제",
+        description="특정 레포트를 삭제합니다.",
         tags=["Report"],
         responses={
-            204: openapi.Response("삭제됨"),
-            409: openapi.Response("참조 중이라 삭제 불가(ProtectedError)"),
+            OpenApiTypes.OBJECT
         },
     )
     def destroy(self, request, *args, **kwargs):

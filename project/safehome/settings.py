@@ -59,13 +59,14 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'rest_framework',
-    'drf_yasg',
     'apps.users',
     'apps.address',
     'apps.gpt',
     'apps.report',
     'apps.contract',
 ]
+
+INSTALLED_APPS += ["drf_spectacular", "drf_spectacular_sidecar"]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -158,6 +159,7 @@ MEDIA_ROOT = BASE_DIR / 'media'   # 프로젝트 루트/media 에 저장
 
 # (선택) DRF 기본 설정
 REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
         'rest_framework.parsers.FormParser',
@@ -171,3 +173,17 @@ REST_FRAMEWORK = {
 }
 
 ALLOWED_HOSTS = ['*']
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "SafeHome API",
+    "DESCRIPTION": "API docs",
+    "VERSION": "1.0.0",
+    # 필요시:
+    "SERVERS": [
+        {"url": "http://localhost:8000", "description": "local8000"},
+        {"url": "http://localhost:80", "description": "local80"},
+        {"url": "http://ec2-13-124-113-86.ap-northeast-2.compute.amazonaws.com:8000", "description": "server8000"},
+        {"url": "http://ec2-13-124-113-86.ap-northeast-2.compute.amazonaws.com:80", "description": "server80"},
+    ],
+}
+

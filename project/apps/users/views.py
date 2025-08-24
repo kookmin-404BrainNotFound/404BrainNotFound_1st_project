@@ -3,8 +3,10 @@ from rest_framework.viewsets import ViewSet
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
+from drf_spectacular.utils import (
+    extend_schema, extend_schema_view,
+    OpenApiParameter, OpenApiTypes, inline_serializer,
+)
 
 from .models import User, UserTendency
 from .serializers import (RegisterSerializer, LoginSerializer, UserSerializer, UserTendencyWriteSerializer,
@@ -12,19 +14,19 @@ from .serializers import (RegisterSerializer, LoginSerializer, UserSerializer, U
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 
-user_id_param = openapi.Parameter(
+user_id_param = OpenApiParameter(
     name="user_id",
-    in_=openapi.IN_PATH,
+    location=OpenApiParameter.PATH,
     description="대상 사용자 ID",
-    type=openapi.TYPE_INTEGER,
+    type=OpenApiTypes.INT,
     required=True,
 )
     
 class RegisterView(APIView):
-    @swagger_auto_schema(
-        operation_summary="회원 가입",
-        operation_description="회원가입 진행.",
-        request_body=RegisterSerializer,
+    @extend_schema(
+        summary="회원 가입",
+        description="회원가입 진행.",
+        request=RegisterSerializer,
     )
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -35,10 +37,10 @@ class RegisterView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class LoginView(APIView):
-    @swagger_auto_schema(
-        operation_summary="로그인",
-        operation_description="로그인 진행 id를 반환.",
-        request_body=LoginSerializer,
+    @extend_schema(
+        summary="로그인",
+        description="로그인 진행 id를 반환.",
+        request=LoginSerializer,
     )
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
@@ -72,13 +74,12 @@ class UserViewSet(ViewSet):
     
 
 class UserTendencyView(APIView):
-    @swagger_auto_schema(
-        operation_summary="사용자 성향 조회",
-        operation_description="user_id로 사용자 성향을 조회한다.",
-        manual_parameters=[user_id_param],
+    @extend_schema(
+        summary="사용자 성향 조회",
+        description="user_id로 사용자 성향을 조회한다.",
+        parameters=[user_id_param],
         responses={
-            200: openapi.Response("조회 성공", UserTendencyReadSerializer),
-            404: openapi.Response("user 또는 사용자 성향 없음."),
+            OpenApiTypes.OBJECT
         },
         tags=["UserTendency"]
     )
@@ -87,18 +88,15 @@ class UserTendencyView(APIView):
         read = UserTendencyReadSerializer(obj, context={"request": request})
         return Response(read.data, status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(
-        operation_summary="사용자 성향 추가.",
-        operation_description=(
+    @extend_schema(
+        summary="사용자 성향 추가.",
+        description=(
             "body로 descrition을 전달합니다."
         ),
-        manual_parameters=[user_id_param],
-        request_body=UserTendencyWriteSerializer,
+        parameters=[user_id_param],
+        request=UserTendencyWriteSerializer,
         responses={
-            201: openapi.Response("생성됨", UserTendencyReadSerializer),
-            200: openapi.Response("업데이트됨", UserTendencyReadSerializer),
-            400: "유효하지 않은 요청 바디",
-            404: "user_id가 존재하지 않음",
+            OpenApiTypes.OBJECT
         },
         tags=["UserTendency"]
     )
@@ -126,14 +124,11 @@ class ListAllTendenciesView(generics.ListAPIView):
     serializer_class=UserTendencyReadSerializer
     queryset = UserTendency.objects.select_related("user").order_by("user_id")
 
-    @swagger_auto_schema(
-        operation_summary="전체 사용자 성향 리스트",
-        operation_description="전체 UserTendency를 페이지네이션하여 반환합니다.",
+    @extend_schema(
+        summary="전체 사용자 성향 리스트",
+        description="전체 UserTendency를 페이지네이션하여 반환합니다.",
         responses={
-            200: openapi.Response(
-                "리스트 성공",
-                UserTendencyReadSerializer(many=True)
-            ),
+            OpenApiTypes.OBJECT
         },
         tags=["UserTendency"],
     )
