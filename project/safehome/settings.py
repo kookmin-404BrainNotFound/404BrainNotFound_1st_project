@@ -48,7 +48,6 @@ INSTALLED_APPS = [
 
     # 3rd-party
     'rest_framework',            # DRF:contentReference[oaicite:2]{index=2}
-    'drf_spectacular',           # drf-spectacular (문서화)
 
     # Local apps
     'apps.users',
@@ -56,7 +55,6 @@ INSTALLED_APPS = [
     'apps.gpt',
     'apps.report',
     'apps.contract',
-    'apps.image',
     'apps.testing',              # flood 프록시 뷰가 있는 앱
 ]
 
