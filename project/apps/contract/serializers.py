@@ -1,20 +1,25 @@
 from rest_framework import serializers
-from .models import Contract
+from .models import Contract, ContractData
 
 class ContractSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contract
-        fields = ['id', 'image', 'caption', 'created']
+        fields = ['id', 'user', 'description','created']
+        extra_kwargs = {
+            "user": {"write_only": True, "required": False}
+        }
 
-    def validate_image(self, image):
-        # 용량 제한 예: 5MB
-        if image.size > 5 * 1024 * 1024:
-            raise serializers.ValidationError('이미지 용량은 5MB 이하만 가능합니다.')
-        # MIME 타입 간단 체크
-        ct = getattr(image, 'content_type', '')
-        if not ct.startswith('image/'):
-            raise serializers.ValidationError('이미지 파일만 업로드 가능합니다.')
-        return image
+class ContractDataSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContractData
+        fields = ['id', 'contract', 'description']
+        read_only_fields = ["id"]
+        extra_kwargs = {
+            "contract": {"write_only": True, "required":False},
+        }
+
+    def create(self, validated_data):
+        return ContractData.objects.create(**validated_data)
 
 class UploadImagesSerializer(serializers.Serializer):
     images = serializers.ListField(
@@ -31,3 +36,25 @@ class UploadResultItemSerializer(serializers.Serializer):
 
 class UploadResultSerializer(serializers.Serializer):
     files = UploadResultItemSerializer(many=True)
+
+class ContractAddressListSerializer(serializers.ModelSerializer):
+    contract_id = serializers.IntegerField(source="id", read_only=True)
+
+    # created 를 created_at 이름으로 노출
+    created_at = serializers.DateTimeField(source="created", read_only=True)
+    # description JSON 안에서 address만 꺼내기
+    address = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Contract
+        fields = ("contract_id", "created_at", "address")
+
+    def get_address(self, obj):
+        desc = obj.description or {}
+        if isinstance(desc, dict) and "answer" in desc:
+            return desc.get("answer").get("address")
+        return (
+            desc.get("주소")
+            or (desc.get("임대 목적물") or {}).get("주소")
+            or None
+        )

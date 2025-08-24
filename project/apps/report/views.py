@@ -32,7 +32,7 @@ from apps.address.models import (Address, UserPrice, BuildingInfo, AvgPrice, Pro
 from external.client.seoul_data import DataSeoulClient
 from external.gpt.gpt_manager import *
 
-import json, os
+import json
 
 # Create your views here.
 
