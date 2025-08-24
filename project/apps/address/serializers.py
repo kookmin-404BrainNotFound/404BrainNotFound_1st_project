@@ -81,8 +81,8 @@ class AirConditionSerializer(serializers.ModelSerializer):
         fields = ["id", "data", "created"]
         read_only_fields = ["id", "created"]
         
-        def create(self, validated_data):
-            return AvgPrice.objects.create(**validated_data)
+    def create(self, validated_data):
+        return AirCondition.objects.create(**validated_data)
 
 class PropertyBundleSerializer(serializers.ModelSerializer):
     address = AddressSerializer(read_only=True)

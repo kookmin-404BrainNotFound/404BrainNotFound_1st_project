@@ -267,9 +267,10 @@ class MakeAirConditionView(APIView):
         client = DataSeoulClient()
         response = client.get_yearly_by_gu(2024, address_manager.sggNm)
 
+        print(response)
         # db에 임시 저장하기.
-        serializer = AirConditionSerializer(data=response)
-        serializer.is_valid()
+        serializer = AirConditionSerializer(data={"data": response})
+        serializer.is_valid(raise_exception=True)
         air_condition = serializer.save()
 
         property_bundle.air_condition = air_condition
@@ -380,7 +381,7 @@ class MakeReportFinalView(APIView):
         fit_response = ask_gpt(messages, model='gpt-4.1')
         
         # 파일 삭제. gpt에서.
-        if(pdf_file_id):
+        if(pdf_bytes is not None):
             delete_gpt_file(pdf_file_id)
         
         # json으로 파싱
@@ -493,17 +494,23 @@ class ReportListByUserView(generics.ListAPIView):
                   .order_by("-created")
                   .values("score")[:1])
 
-        up = UserPrice.objects.filter(report_id=OuterRef("pk"))
-        qs = (Report.objects
-              .filter(property_bundle__user_id=user_id)
-              .annotate(
-                  danger_score=Subquery(danger_sq),
-                  fit_score=Subquery(fit_sq),
-                  security_deposit=Subquery(up.values("security_deposit")[:1]),
-                  monthly_rent=Subquery(up.values("monthly_rent")[:1]),
-                  is_year_rent=Subquery(up.values("is_year_rent")[:1]),
-              )
-              .order_by("-id"))  # ← 여기만 변경
+        up = (
+            UserPrice.objects
+            .filter(bundle=OuterRef("property_bundle"))  # ← 핵심 수정
+            .order_by("-id")  # 최신값 1건만 뽑을 때 안전
+        )
+        qs = (
+            Report.objects
+            .filter(property_bundle__user_id=user_id)
+            .annotate(
+                danger_score=Subquery(danger_sq),
+                fit_score=Subquery(fit_sq),
+                security_deposit=Subquery(up.values("security_deposit")[:1]),
+                monthly_rent=Subquery(up.values("monthly_rent")[:1]),
+                is_year_rent=Subquery(up.values("is_year_rent")[:1]),
+            )
+            .order_by("-id")
+        )
 
         status_value = self.request.query_params.get("status")
         if status_value:
