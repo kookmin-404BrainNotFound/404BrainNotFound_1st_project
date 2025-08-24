@@ -24,10 +24,10 @@ from rest_framework import permissions
 from drf_spectacular.views import (
     SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 )
-
 router = routers.DefaultRouter()
 
 urlpatterns = [
+    path('testing/', include('apps.testing.urls')),
     path('admin/', admin.site.urls),
     path('user/', include('apps.users.urls')),
     path('address/', include('apps.address.urls')),
@@ -42,6 +42,7 @@ urlpatterns += [
     path("swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]
+
 
 # 개발환경에서 미디어 파일 제공
 if settings.DEBUG:

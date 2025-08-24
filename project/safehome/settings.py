@@ -30,8 +30,10 @@ AIR_QUALITY_KEY = os.getenv("AIR_QUALITY_KEY") # 대기질 api 키 가져오기
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # gpt api 키 가져오기
 
+API_URL = os.getenv("API_URL")
 A_PICK_KEY = os.getenv("A_PICK_KEY")
 
+# 침수정보 api 가져오기
 DATA_GO_KR_ENCODING_KEY = os.getenv("DATA_GO_KR_ENCODING_KEY")
 DATA_GO_KR_DECODING_KEY = os.getenv("DATA_GO_KR_DECODING_KEY")
 
@@ -57,12 +59,17 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    'rest_framework',
+    # 3rd-party
+    'rest_framework',            # DRF:contentReference[oaicite:2]{index=2}
+
+    # Local apps
+
     'apps.users',
     'apps.address',
     'apps.gpt',
     'apps.report',
     'apps.contract',
+    'apps.testing',              # flood 프록시 뷰가 있는 앱
 ]
 
 INSTALLED_APPS += ["drf_spectacular", "drf_spectacular_sidecar"]
@@ -151,12 +158,12 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+TEXT_ROOT = BASE_DIR / "textfiles"
+
 
 # 이미지/업로드 파일 설정
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'   # 프로젝트 루트/media 에 저장
-
-TEXT_ROOT = BASE_DIR / "textfiles"
 
 # (선택) DRF 기본 설정
 REST_FRAMEWORK = {
@@ -175,6 +182,7 @@ REST_FRAMEWORK = {
 
 ALLOWED_HOSTS = ['*']
 
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "SafeHome API",
     "DESCRIPTION": "API docs",
@@ -188,4 +196,3 @@ SPECTACULAR_SETTINGS = {
     ],
     'COMPONENT_SPLIT_REQUEST': True,
 }
-
