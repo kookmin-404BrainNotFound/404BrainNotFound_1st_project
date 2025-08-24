@@ -14,8 +14,10 @@ Including anotherfrom django.conf.urls.static import static URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
+# safehome/urls.py
 from django.contrib import admin
-from django.urls import path, include, re_path
+from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -43,6 +45,5 @@ urlpatterns += [
     path("redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]
 
-# 개발환경에서 미디어 파일 제공
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
