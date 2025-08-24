@@ -14,44 +14,31 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# --- 기본 경로/환경 ---
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-# env 로드.
 load_dotenv(BASE_DIR / ".env")
 
+# --- 외부 키/환경 변수 ---
 VWORLD_API_KEY = os.getenv("V_WORLD_KEY")
 SEOUL_DATA_KEY = os.getenv("SEOUL_DATA_KEY")
 BUSINESS_JUSO_KEY = os.getenv("BUSINESS_JUSO_KEY")
-
-
-AIR_QUALITY_KEY = os.getenv("AIR_QUALITY_KEY") # 대기질 api 키 가져오기
-
-
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # gpt api 키 가져오기
-
+AIR_QUALITY_KEY = os.getenv("AIR_QUALITY_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 API_URL = os.getenv("API_URL")
 A_PICK_KEY = os.getenv("A_PICK_KEY")
 
-# 침수정보 api 가져오기
+# 침수정보 API 키
 DATA_GO_KR_ENCODING_KEY = os.getenv("DATA_GO_KR_ENCODING_KEY")
 DATA_GO_KR_DECODING_KEY = os.getenv("DATA_GO_KR_DECODING_KEY")
 
-ALLOWED_HOSTS = ["*"] # 개발 중 외부 접속 허용(로컬 테스트 편하게)
-
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
+# --- 보안/디버그 ---
 SECRET_KEY = 'django-insecure-*r1-ojihfw4vb39-e=e4)v--wr+-^bs!n1d81!k033vjd39how'
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+ALLOWED_HOSTS = ["*"]  # 개발 중 외부 접속 허용:contentReference[oaicite:1]{index=1}
 
-# Application definition
-
+# --- 앱 등록 ---
 INSTALLED_APPS = [
+    # Django 기본
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -59,14 +46,17 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    'rest_framework',
-    'drf_yasg',
+    # 3rd-party
+    'rest_framework',            # DRF:contentReference[oaicite:2]{index=2}
+    'drf_spectacular',           # drf-spectacular (문서화)
+
+    # Local apps
     'apps.users',
     'apps.address',
     'apps.gpt',
     'apps.report',
     'apps.image',
-    'apps.testing',
+    'apps.testing',              # flood 프록시 뷰가 있는 앱
 ]
 
 MIDDLEWARE = [
@@ -98,10 +88,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'safehome.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
+# --- 데이터베이스 ---
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -109,70 +96,51 @@ DATABASES = {
     }
 }
 
-
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
+# --- 비밀번호 검증 ---
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
+# --- 국제화/시간대 ---
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
+# --- 정적/미디어 ---
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-
-# 이미지/업로드 파일 설정
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'   # 프로젝트 루트/media 에 저장
+MEDIA_ROOT = BASE_DIR / 'media'    # 업로드 파일 저장:contentReference[oaicite:3]{index=3}
 
-# (선택) DRF 기본 설정
+# --- DRF 기본 설정 ---
 REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
         'rest_framework.parsers.FormParser',
-        'rest_framework.parsers.MultiPartParser',  # 파일 업로드에 필요
+        'rest_framework.parsers.MultiPartParser',  # 파일 업로드 지원:contentReference[oaicite:4]{index=4}
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.AllowAny',     # 개발 단계 기본 허용:contentReference[oaicite:5]{index=5}
     ],
+    # drf-spectacular 자동 스키마 활성화
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
-
+# --- drf-spectacular 설정 ---
 SPECTACULAR_SETTINGS = {
     "TITLE": "Flood Risk API",
     "DESCRIPTION": "data.go.kr(한강홍수통제소) 침수 통계 조회 프록시",
     "VERSION": "1.0.0",
+
+    # (선택) 스키마 정리 옵션들
+    "SERVE_INCLUDE_SCHEMA": False,                # /schema/ 그 자체는 Swagger UI에서 숨김
+    "COMPONENT_SPLIT_REQUEST": True,              # 요청/응답 스키마 분리
+    "ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE": False,
+    "SCHEMA_PATH_PREFIX": r"/",                   # 모든 경로 포함 (리버스 프록시 쓴다면 조정)
 }

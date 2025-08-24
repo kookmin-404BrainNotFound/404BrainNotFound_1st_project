@@ -14,58 +14,35 @@ Including anotherfrom django.conf.urls.static import static URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
+# safehome/urls.py
 from django.contrib import admin
-from django.urls import path, include, re_path
+from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
-from rest_framework import routers
-from rest_framework import permissions
-from drf_yasg.views import get_schema_view
-from drf_yasg import openapi
-
-
-router = routers.DefaultRouter()
-
-schema_view = get_schema_view(
-    openapi.Info(
-        title="SafeHome API",
-        default_version="v1",
-        description="SafeHome description",
-        terms_of_service="https://www.google.com/policies/terms/",
-        contact=openapi.Contact(email="contact@snippets.local"),
-        license=openapi.License(name="BSD License"),
-    ),
-    public=True,
-    permission_classes = [permissions.AllowAny],
-    patterns=[
-        path("testing/", include("apps.testing.urls")),
-        path("user/", include("apps.users.urls")),
-        path("address/", include("apps.address.urls")),
-        path("gpt/", include("apps.gpt.urls")),
-        path("report/", include("apps.report.urls")),
-        path("api/", include("apps.image.urls")),
-    ],
-    url=settings.API_URL,
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+    SpectacularRedocView,
 )
 
 urlpatterns = [
-    path('testing/', include('apps.testing.urls')),
-    path('admin/', admin.site.urls),
-    path('user/', include('apps.users.urls')),
-    path('address/', include('apps.address.urls')),
-    path('gpt/', include('apps.gpt.urls')),
-    path('report/', include('apps.report.urls')),
-    path('api/', include('apps.image.urls')),
+    # 문서 라우트는 항상 include("api/")보다 위에!
+    path("schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+
+    path("admin/", admin.site.urls),
+    path("testing/", include("apps.testing.urls")),
+    path("user/", include("apps.users.urls")),
+    path("address/", include("apps.address.urls")),
+    path("gpt/", include("apps.gpt.urls")),
+    path("report/", include("apps.report.urls")),
+
+    # 맨 아래: image 앱 안에 catch-all이 있어도 문서를 안 먹게 함
+    path("api/", include("apps.image.urls")),
 ]
 
-
-urlpatterns += [
-    re_path(r'^swagger(?P<format>\.json|\.yaml)$',schema_view.without_ui(cache_timeout=0),name='schema-json'),
-    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0),name='schema-swagger-ui'),
-    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0),name='schema-redoc'),
-]
-
-# 개발환경에서 미디어 파일 제공
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
