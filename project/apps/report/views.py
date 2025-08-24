@@ -291,8 +291,11 @@ class MakeReportFinalView(APIView):
         except Report.DoesNotExist:
             return Response({'error': 'ReportRun not found'}, status=status.HTTP_404_NOT_FOUND)
 
-
         property_bundle = report.property_bundle
+
+        # user를 가져오기.
+        user:User = property_bundle.user
+
         ##### 위험도측정 #####
         # 주소 만들기
         address_manager:AddressManager = property_bundle.address.to_address_manager()
@@ -310,6 +313,7 @@ class MakeReportFinalView(APIView):
 
         # 파일을 제외한 dict
         infos = {
+            "username": user.name,
             "address": address_manager.roadAddr,
             "building_info": building_info,
             "user_price_info": user_price_info,
@@ -328,8 +332,6 @@ class MakeReportFinalView(APIView):
         
         ##### 적합도 측정 #####
 
-        # user를 가져오기.
-        user:User = property_bundle.user
         # usertendency를 가져오기.
         user_tendency = UserTendencyReadSerializer(user.user_tendency).data
         print(user_tendency)
