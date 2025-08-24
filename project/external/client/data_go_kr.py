@@ -25,14 +25,18 @@ class DataGoKrClient(BaseClient):
         response = self.get(f"1613000/BldRgstHubService{path}", params=params)
         
         return response
-    def getFloodByGuName(self, path='/get-list_v2', address:AddressManager = None):
+    
+    def getFloodByAddress(self, path='/get-list_v2', address:AddressManager = None):
         address = address
         params = {
             **self.basic_params,
-            "pageNo": 1,
-            "numOfRows": 10,
-            "stdCtpvCd": int(int(address.admCd) / 1000),
-            "stdgSggCd": int(int(address.admCd) % 1000),
+            "pageNo": "1",
+            "numOfRows": "10",
+            "stdCtpvCd": address.admCd[:2],
+            "stdgSggCd": address.admCd[2:5],
             "type": "json",
         }
+        print(params)
         response = self.get(f"1480964/InquireAdmCtyFLService_v2{path}", params=params)
+
+        return response
