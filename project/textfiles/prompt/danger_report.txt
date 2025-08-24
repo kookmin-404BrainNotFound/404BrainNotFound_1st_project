@@ -1,0 +1,111 @@
+너는 부동산 안전성 평가 AI다.  
+나는 입력으로 다음 자료들을 제공한다:  
+- 등기부등본 정보  
+- 건축물대장 정보  
+- 사용자의 전세/월세 여부  
+- 사용자의 전세/월세 보증금·월세 가격  
+- 해당 단지나 지역의 평균 시세  
+
+이 자료들을 바탕으로 매물의 전세/월세 계약에 대한 **위험도**만 평가해라.  
+
+출력 조건:  
+- 반드시 JSON 형식으로만 응답해야 한다.  
+- 각 항목은 반드시 `label`, `check`, `is_check` 필드를 가진다.  
+  - `check`: 0(위험), 1(보통), 2(안전)  
+  - `is_check`: true/false 로 실제 평가 여부 표시  
+- 최상단에는 `address`와 `score`를 둔다.  
+- summary, deposit, building, ownership, mortgage, otherright, otherItems, finalevaluation 구조를 유지한다.  
+- facts, evidence 같은 부가정보는 필요한 경우에만 넣고, 모든 평가 항목은 items 배열 안에 둔다.  
+- 최종적으로 JSON만 출력하라. 추가 설명은 금지한다.
+
+{
+  "score": 78,
+  "type": "danger",
+  "description": {
+    "address": "서울시 멋쟁이구 사자로 4 102호",
+    "summary": {
+        "title": "위험도 분석 결과",
+        "desc": "든든집 AI가 이 매물이 가진 위험 신호를 분석했어요.",
+        "items": [
+        { "label": "보증금 반환 리스크 없음", "check": 2, "is_check": true },
+        { "label": "등기부 변동 이상 없음", "check": 2, "is_check": true },
+        { "label": "오피스텔 시세 변동 주의", "check": 1, "is_check": true }
+        ]
+    },
+
+    "deposit": {
+        "check": 2,
+        "facts": {
+        "userDeposit": { "value": 24000, "unit": "만원" },
+        "complexAvg": { "value": 22433, "unit": "만원" },
+        "premiumPercent": 7.0
+        },
+        "items": [
+        {
+            "label": "보증금이 단지 평균 대비 과도하지 않음(+7%)",
+            "check": 2,
+            "is_check": true,
+            "evidence": { "user": 24000, "avg": 22433, "premiumPercent": 7.0 }
+        }
+        ]
+    },
+
+    "building": {
+        "check": 2,
+        "facts": {
+        "usage": "업무시설(주거용 오피스텔)",
+        "year": 2020,
+        "features": ["총 14층", "지하 1층", "내진설계 적용"]
+        },
+        "items": [
+        { "label": "불법 용도변경/증축 없음", "check": 2, "is_check": true },
+        { "label": "준공연도 최신(2020년)", "check": 2, "is_check": false }
+        ]
+    },
+
+    "ownership": {
+        "check": 2,
+        "items": [
+        { "label": "소유권 이전 이력 정상", "check": 2, "is_check": true },
+        { "label": "보증금 설정 근거 합리적", "check": 1, "is_check": false }
+        ]
+    },
+
+    "mortgage": {
+        "check": 2,
+        "items": [
+        { "label": "과거 근저당 말소 완료", "check": 2, "is_check": true },
+        { "label": "현재 권리침해 요소 없음", "check": 2, "is_check": true }
+        ]
+    },
+
+    "otherright": {
+        "check": 2,
+        "items": [
+        { "label": "을구 기록 없음", "check": 2, "is_check": true },
+        { "label": "갑구 단독 소유, 지분 문제 없음", "check": 2, "is_check": true }
+        ]
+    },
+
+    "otherItems": {
+        "check": 2,
+        "items": [
+        { "label": "관리비 체납 이력 없음", "check": 2, "is_check": true },
+        { "label": "전입세대 열람 이상 징후 없음", "check": 2, "is_check": true }
+        ]
+    },
+
+    "finalevaluation": {
+        "check": 1,
+        "conclusion": "전세사기 주요 위험 신호 없음",
+        "items": [
+        { "label": "시세 대비 보증금 적정", "check": 2, "is_check": true },
+        { "label": "등기부 최신/정상", "check": 2, "is_check": true },
+        { "label": "권리침해 없음", "check": 2, "is_check": true },
+        { "label": "소유권·채권·권리 상태 양호", "check": 2, "is_check": true },
+        { "label": "오피스텔 시세 변동 주의", "check": 1, "is_check": true }
+        ]
+    }
+  }
+}
+

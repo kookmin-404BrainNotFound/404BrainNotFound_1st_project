@@ -32,7 +32,7 @@ class ReportData(models.Model):
         related_name="report_data"
     )
     score = models.IntegerField(blank=True, null=True, default=None)
-    description = models.TextField(blank=True, default="")
+    description = models.JSONField(blank=True, default={})
     created = models.DateTimeField(auto_now_add=True)
     type = models.CharField(
         max_length=10,

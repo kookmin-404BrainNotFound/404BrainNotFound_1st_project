@@ -32,7 +32,7 @@ from apps.address.models import (Address, UserPrice, BuildingInfo, AvgPrice, Pro
 from external.client.seoul_data import DataSeoulClient
 from external.gpt.gpt_manager import *
 
-import json
+import json, os
 
 # Create your views here.
 
@@ -338,42 +338,19 @@ class MakeReportFinalView(APIView):
         
         # gpt에 물어본다. 처음에는 파일을 제외하고, 파일까지 첨부한 후 물어본다.
         messages = []
-        # system
-        system_str = """
-        너는 전세사기를 분석하는 전문가야.
-        너는 사용자가 제공하는 데이터를 기반으로 위험도 점수, 적합도 점수와 함께
-        위험도 레포트, 적합도 레포트를 작성해야 해.
-        오직 Json형식으로만 응답하고 이외의 불필요한 텍스트는 모두 제거해줘.
-        말투는 진지하게, 수치를 사용자에게 전부 보여주는 방식이 아니라, 축약해서 누구나 알아듣기 쉽게 말로 풀어 설명해줘.
-        말투는 항상 ~다.로 끝나게 해줘.
-        형식은 다음과 같아.
-        [
-            {
-                "type": "danger",
-                "score": "82",
-                "description": ""
-            },
-            {
-                "type": "fit",
-                "score": "70",
-                "description": ""
-            }
-        ]
+
+        ### textfolder_path
+        text_path = settings.TEXT_ROOT
         
-        각 description은 약 3000자 정도로, 마크다운 문법으로 주고, 이모티콘과 아이콘은 많이 사용하지는 말아줘.
-
-        너가 받을 데이터는 사용자의 보증금과 월세야. 월세가 0이면 전세라고 보면 되는거고. 그게 아니라면 월세라고 판단해.
-        그리고 너는 avg로 시작하는 평균 보증금과 월세를 받을 수 있어. 이걸 보고, 전세사기 즉 깡통 전세인지, 월세가 부당한지 등을 판단해.
-        그리고 건축물 대장(building_info)에서 문제가 되는 부분이 있으면 언급하고 딱히 문제가 없다면 길게 얘기하지는 마.
-        그리고 등기부등본으로 pdf 파일을 받을거야. 그 pdf 파일에서 주의할 점, 문제가 되는 점은 없는지 평가해.
-
-        위 내용들을 종합적으로 평가해서 위험도 점수와 description을 작성하면 돼.
-
-        적합도는 사용자의 성향 데이터와, 건축물대장(building_info), 공기질 데이터, 침수 데이터 등으로 판단해. 절대 마음대로 가정해서 판단하지 말고,
-        주어진 데이터를 바탕으로 분석해서 점수를 내주면 돼. 근데 햇빛이나 소음 등은, 사용자의 상세주소와 사는 곳을 바탕으로 추정만 해주고,
-        사용자에게 직접 찾아가서 볼 것을 권유해줘.
-        그리고 pdf 등이 누락되면 반드시 설명해줘.
-        """
+        # system
+        with open(text_path / "sys/report_sys.txt", "r", encoding="utf-8") as f:
+            system_str = f.read()
+        # danger_prompt
+        with open(text_path / "prompt/danger_report.txt", "r", encoding="utf-8") as f:
+            danger_prompt = f.read()
+        # fit prompt
+        with open(text_path / "prompt/fit_report.txt", "r", encoding="utf-8") as f:
+            fit_prompt = f.read()
         
         messages.append(create_message("system", system_str))
         
@@ -388,6 +365,9 @@ class MakeReportFinalView(APIView):
                 {"type": "input_text", "text": "등기부등본 파일이야."}
             ])
             messages.append(message)
+        # 먼저 위험도 분석하기.
+        messages.append(create_message("user", danger_prompt))
+        danger_response = ask_gpt(messages, model="gpt-4.1")
         
         # 사용자 성향 데이터 받기.
         messages.append(create_message("user", str(user_tendency)))
@@ -395,23 +375,24 @@ class MakeReportFinalView(APIView):
         messages.append(create_message("user", str(air_condiion)))
         # 침수 데이터 넣기.
         messages.append(create_message("user", ""))
-        # 분석
-        messages.append(create_message("user", "분석해줘."))
-        result = ask_gpt(messages, model='gpt-4.1')
+        # 적합도 데이터 분석
+        messages.append(create_message("user", fit_prompt))
+        fit_response = ask_gpt(messages, model='gpt-4.1')
         
         # 파일 삭제. gpt에서.
         if(pdf_file_id):
             delete_gpt_file(pdf_file_id)
         
         # json으로 파싱
-        data = json.loads(result)
+        danger_json = json.loads(danger_response)
+        fit_json = json.loads(fit_response)
         # 각 데이터를 저장.
         with transaction.atomic():
-            danger_report_data_ser = ReportDataSerializer(data=data[0])
+            danger_report_data_ser = ReportDataSerializer(data=danger_json)
             danger_report_data_ser.is_valid(raise_exception=True)
             danger_report_data_ser.save(report=report)
 
-            fit_report_data_ser = ReportDataSerializer(data=data[1])
+            fit_report_data_ser = ReportDataSerializer(data=fit_json)
             fit_report_data_ser.is_valid(raise_exception=True)
             fit_report_data_ser.save(report=report)
 
