@@ -17,6 +17,8 @@
 반드시 말투는 진지하게 하되, ~해요. ~합니다. 로 합니다.
 절대 json이외의 텍스트를 포함하지 마세요. 예시와 key는 완전히 동일해야 하지만 내용은 유연하게 수정해주세요.
 summary와 finalevaluation은 되도록이면 is_check를 false로 두고 각 label에 긴 텍스트로 작성하세요.
+summary와 finalevaluation의 item의 label은 3개 이상의 문장으로 구성하세요.
+또한 다른 item 들도 is_check = False도 가끔 넣고, is_check = False라면 문장을 3개 이상으로 구성하세요.
 
 JSON 예시는 아래와 같아요.
 {

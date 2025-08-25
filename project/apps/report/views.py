@@ -25,6 +25,7 @@ from external.address.price import get_avg_price
 from external.address.address_manager import AddressManager
 from external.address.property_registry import get_property_registry
 from external.address.flood import getFloodByAddress
+from external.client.data_go_kr import DataGoKrClient
 
 from apps.address.serializers import (PropertyRegistrySerializer, AirConditionSerializer,
                                       UserPriceSerializer, BuildingInfoSerializer, AvgPriceSerializer
@@ -299,11 +300,15 @@ class MakeFloodView(APIView):
         address_manager:AddressManager = property_bundle.address.to_address_manager()
         address_manager.initialize(research=False)
 
-        response = getFloodByAddress(address_manager=address_manager)
+        client = DataGoKrClient()
+        data = client.getFloodByAddress(address=address_manager)
+        
+        client.close()
 
-        print(response)
+        print(address_manager.roadAddr)
+
         # db에 임시 저장하기.
-        serializer = FloodSerializer(data={"data": response})
+        serializer = FloodSerializer(data={"data": data})
         serializer.is_valid(raise_exception=True)
         flood = serializer.save()
 
