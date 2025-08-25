@@ -60,7 +60,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # 3rd-party
-    'rest_framework',            # DRF:contentReference[oaicite:2]{index=2}
+    'rest_framework', 
 
     # Local apps
 
@@ -69,7 +69,7 @@ INSTALLED_APPS = [
     'apps.gpt',
     'apps.report',
     'apps.contract',
-    'apps.testing',              # flood 프록시 뷰가 있는 앱
+    'apps.testing',
 ]
 
 INSTALLED_APPS += ["drf_spectacular", "drf_spectacular_sidecar"]
@@ -163,7 +163,7 @@ TEXT_ROOT = BASE_DIR / "textfiles"
 
 # 이미지/업로드 파일 설정
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'   # 프로젝트 루트/media 에 저장
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # (선택) DRF 기본 설정
 REST_FRAMEWORK = {
@@ -171,7 +171,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
         'rest_framework.parsers.FormParser',
-        'rest_framework.parsers.MultiPartParser',  # 파일 업로드에 필요
+        'rest_framework.parsers.MultiPartParser',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
@@ -187,7 +187,6 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "SafeHome API",
     "DESCRIPTION": "API docs",
     "VERSION": "1.0.0",
-    # 필요시:
     "SERVERS": [
         {"url": "http://localhost:8000", "description": "local8000"},
         {"url": "http://localhost:80", "description": "local80"},

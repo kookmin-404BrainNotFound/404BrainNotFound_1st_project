@@ -14,7 +14,6 @@ from django.http import FileResponse
 
 from external.client.business_juso import BusinessJusoClient
 from external.client.seoul_data import DataSeoulClient
-from external.client.a_pick import APickClient
 from external.address.building_info import BuildingInfoManager
 from external.address.property_registry import get_property_registry
 

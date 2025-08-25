@@ -37,51 +37,6 @@ class DataSeoulClient(BaseClient):
         response = self.get(path)
         return response
 
-
-    def get_realtime_city_air(
-            self,
-            *,
-            size: int = 25,
-            gu_name: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """
-        실시간 대기질(구별) 데이터 조회
-        - size: 가져올 레코드 수 (기본 25; 25개 구 전체에 해당)
-        - gu_name: 특정 구 이름으로 필터 (예: "강남구"). 한글은 URL 인코딩해서 경로에 붙임.
-
-        반환: JSON(dict) 응답
-        예시 필드(일반적): MSRSTE_NM(구명), PM10, PM25, NO2, O3, CO, SO2, IDEX_NM(지수명) 등
-        """
-        # 1) 기본 경로 구성: /{API_KEY}/json/RealtimeCityAir/1/{size}/
-        path = f"/{settings.AIR_QUALITY_KEY}/json/RealtimeCityAir/1/{size}/"
-
-        # 2) 구 이름이 있으면 마지막 경로 세그먼트로 추가 (한글은 URL 인코딩)
-        if gu_name:
-            path += quote(gu_name)
-
-        # 3) 실제 요청 수행 (BaseClient.get 사용) 및 JSON 반환
-        return self.get(path)
-
-    def get_all(self) -> Dict[str, Any]:
-        """
-        25개 구 전체 최신 측정치(기본 사이즈 25)를 한 번에 가져오는 헬퍼.
-        """
-        return self.get_realtime_city_air(size=25, gu_name=None)
-
-    def get_air_by_gu(self, gu_name: str) -> Optional[Dict[str, Any]]:
-        """
-        특정 '구'의 최신 대기질 한 건만 반환.
-        - gu_name: "강남구", "마포구" 같은 전체 구명
-        반환: dict(한 건) 또는 None(데이터 없음)
-        """
-        # size=1 로 한 건만 요청
-        data = self.get_realtime_city_air(size=1, gu_name=gu_name)
-
-        # 공개 API 응답 스키마: {"RealtimeCityAir": {"row": [ {...}, ... ]}}
-        block = data.get("RealtimeCityAir", {}) if isinstance(data, dict) else {}
-        rows = block.get("row", [])
-        return rows[0] if rows else None
-
     def get_yearly_average_air_quality(
         self,
         *,
@@ -90,10 +45,6 @@ class DataSeoulClient(BaseClient):
         end_index: int = 25,       # END_INDEX (정수)
         gu_name: Optional[str] = None,  # MSRSTE_NM (선택)
     ) -> Any:
-        """
-        연평균 대기질(YearlyAverageAirQuality) 조회.
-        경로 형태: /{KEY}/json/YearlyAverageAirQuality/{START_INDEX}/{END_INDEX}/{MSRDT_YEAR}/{MSRSTE_NM?}
-        """
         segs = [
             settings.AIR_QUALITY_KEY,
             "json",
@@ -108,7 +59,6 @@ class DataSeoulClient(BaseClient):
         return self.get(path)
 
     def get_yearly_by_gu(self, year: int, gu_name: str) -> Optional[dict]:
-        """특정 연도의 특정 구 연평균 대기질 1건만 반환(없으면 None)."""
         data = self.get_yearly_average_air_quality(
             year=year, start_index=1, end_index=1, gu_name=gu_name
         )

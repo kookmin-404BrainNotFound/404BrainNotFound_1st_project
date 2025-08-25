@@ -1,7 +1,5 @@
 from rest_framework import viewsets, generics
 from rest_framework.views import APIView
-from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -12,7 +10,7 @@ from drf_spectacular.utils import (
 
 from .models import Contract, ContractData
 from .serializers import (ContractSerializer, UploadImagesSerializer,
-                           UploadResultSerializer, UploadResultItemSerializer, ContractDataSerializer,
+                           UploadResultSerializer, ContractDataSerializer,
                            ContractAddressListSerializer)
 
 from apps.users.models import User
@@ -110,8 +108,8 @@ class StartContractView(APIView):
         address_json = json.loads(answer)
 
         result = {
-            "images": images,         # list OK
-            "answer": address_json,   # dict(JSON)이나 fallback
+            "images": images,         
+            "answer": address_json,
         }
 
         # contract에 save하기.

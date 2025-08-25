@@ -53,7 +53,6 @@ class LoginView(APIView):
             
             return Response(
                 {
-                    # 추후에 JWT 토큰 추가 필요.
                    "id": user.id,
                    "message": "Login successful."
                 }, status=status.HTTP_200_OK)

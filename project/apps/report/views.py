@@ -1,9 +1,6 @@
 from django.core.files.base import ContentFile
-from django.http import Http404
 from django.db import transaction
-from django.utils.decorators import method_decorator
-from django.db.models import OuterRef, Subquery, F, Value
-from django.db.models.functions import Coalesce
+from django.db.models import OuterRef, Subquery
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,7 +11,7 @@ from drf_spectacular.utils import (
     OpenApiParameter, OpenApiTypes, inline_serializer,
 )
 
-from apps.users.models import User, UserTendency
+from apps.users.models import User
 from apps.users.serializers import UserTendencyReadSerializer
 
 from .models import Report, ReportData
@@ -25,7 +22,6 @@ from external.address.building_info import BuildingInfoManager
 from external.address.price import get_avg_price
 from external.address.address_manager import AddressManager
 from external.address.property_registry import get_property_registry
-from external.address.flood import getFloodByAddress
 from external.client.data_go_kr import DataGoKrClient
 
 from apps.address.serializers import (PropertyRegistrySerializer, AirConditionSerializer,

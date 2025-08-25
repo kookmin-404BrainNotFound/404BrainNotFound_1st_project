@@ -11,7 +11,7 @@ from drf_spectacular.utils import (
     OpenApiParameter, OpenApiTypes, inline_serializer
 )
 
-from .serializers import FloodDepthItemSerializer, RoadAddressSerializer
+from .serializers import RoadAddressSerializer
 
 from external.client.data_go_kr import DataGoKrClient
 from external.address.address_manager import AddressManager
