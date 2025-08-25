@@ -369,11 +369,15 @@ class MakeReportFinalView(APIView):
         building_info = getattr(property_bundle.building_info, "description", {})  # {}를 기본
         # 전월세가분석
         avg_price:AvgPrice = property_bundle.avg_price
-        price_info = AvgPriceSerializer(avg_price).data
+        avg_serial = AvgPriceSerializer(avg_price)
+        avg_serial.is_valid(raise_exception=True)
+        price_info = avg_serial.data
         
         # user의 전월세가
         user_price:UserPrice = property_bundle.user_price
-        user_price_info = UserPriceSerializer(user_price).data
+        user_price_ser = UserPriceSerializer(user_price)
+        user_price_ser.is_valid()
+        user_price_info = user_price_ser.data
 
         # 파일을 제외한 dict
         infos = {
@@ -397,7 +401,8 @@ class MakeReportFinalView(APIView):
         ##### 적합도 측정 #####
 
         # usertendency를 가져오기.
-        user_tendency = UserTendencyReadSerializer(user.user_tendency).data
+        user_tendency_ser = UserTendencyReadSerializer(user.user_tendency)
+        user_tendency = user_tendency_ser.data
 
         # 공기질 가져오기.
         air_condiion = AirConditionSerializer(property_bundle.air_condition).data
