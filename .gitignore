@@ -7,5 +7,6 @@ project/db.sqlite3
 .idea
 /project/staticfiles
 /staticfiles
-/project/media
+/project/media/**
+!/project/media/.gitkeep
 /project/db/*.sqlite3
