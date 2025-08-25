@@ -20,6 +20,7 @@ from apps.users.models import User
 from external.gpt.gpt_manager import *
 
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
+from django.shortcuts import get_object_or_404
 
 import json
 class ContractViewSet(viewsets.ModelViewSet):
@@ -176,3 +177,9 @@ class ContractByUserListView(generics.ListAPIView):
             .order_by("-created")
         )
         
+class GetContractDataView(APIView):
+    def get(self, request, contract_id):
+        contract_data = get_object_or_404(ContractData, contract_id=contract_id)
+
+        serializer = ContractDataSerializer(contract_data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
