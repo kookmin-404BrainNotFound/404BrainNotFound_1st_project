@@ -59,7 +59,7 @@ class StartReportView(APIView):
         serializer = StartReportSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         vd = serializer.validated_data
-        
+            
         user_id = vd["user_id"]
         try:
             user = User.objects.get(id=user_id)
@@ -154,8 +154,14 @@ class MakeBuildingInfoView(APIView):
         # 주소 가져오기.
         address_manager:AddressManager = property_bundle.address.to_address_manager()
         address_manager.initialize(research=False)
+        if not address_manager.is_valid():
+            return Response({"error": "유효하지 않은 주소입니다."}, status=status.HTTP_400_BAD_REQUEST)
+
         # 건축물대장부
-        info = BuildingInfoManager().makeInfo(address_manager)
+        try:
+            info = BuildingInfoManager().makeInfo(address_manager)
+        except Exception as e:
+            return Response({"error": "building_info get falied"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         serializer = BuildingInfoSerializer(data={"description": info})
         serializer.is_valid(raise_exception=True)
         building_info = serializer.save()
@@ -190,12 +196,17 @@ class MakeAvgPriceView(APIView):
         # 주소 가져오기.
         address_manager:AddressManager = property_bundle.address.to_address_manager()
         address_manager.initialize(research=False)
+        if not address_manager.is_valid():
+            return Response({"error": "유효하지 않은 주소입니다."}, status=status.HTTP_400_BAD_REQUEST)
         
         # 전월세가분석
-        price_info = get_avg_price(
-            startYear=vd.get("start_year", 2024),
-            address_manager=address_manager
-        )
+        try:
+            price_info = get_avg_price(
+                startYear=vd.get("start_year", 2024),
+                address_manager=address_manager
+            )
+        except Exception as e:
+            return Response({"error": "avg_price get error."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         serializer = AvgPriceSerializer(data=price_info)
         serializer.is_valid(raise_exception=True)
@@ -229,10 +240,15 @@ class MakePropertyRegistryView(APIView):
         # 주소 가져오기.
         address_manager:AddressManager = property_bundle.address.to_address_manager()
         address_manager.initialize(research=False)
+        if not address_manager.is_valid():
+            return Response({"error": "유효하지 않은 주소입니다."}, status=status.HTTP_400_BAD_REQUEST)
         
         # 등기부등본 조회하기.
         full_addr = address_manager.getFullAddr()
-        pdf_bytes = get_property_registry(full_addr=full_addr)
+        try:
+            pdf_bytes = get_property_registry(full_addr=full_addr)
+        except Exception as e:
+            return Response({"error": "property_registry get failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         filename = "등기부등본.pdf"
         
         property_registry = PropertyRegistry()
@@ -266,9 +282,14 @@ class MakeAirConditionView(APIView):
         # 주소 가져오기.
         address_manager:AddressManager = property_bundle.address.to_address_manager()
         address_manager.initialize(research=False)
+        if not address_manager.is_valid():
+            return Response({"error": "유효하지 않은 주소입니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        client = DataSeoulClient()
-        response = client.get_yearly_by_gu(2024, address_manager.sggNm)
+        try:
+            client = DataSeoulClient()
+            response = client.get_yearly_by_gu(2024, address_manager.sggNm)
+        except Exception as e:
+            return Response({"error": "air condition get failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # db에 임시 저장하기.
         serializer = AirConditionSerializer(data={"data": response})
@@ -299,11 +320,14 @@ class MakeFloodView(APIView):
         # 주소 가져오기.
         address_manager:AddressManager = property_bundle.address.to_address_manager()
         address_manager.initialize(research=False)
+        if not address_manager.is_valid():
+            return Response({"error": "유효하지 않은 주소입니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        client = DataGoKrClient()
-        data = client.getFloodByAddress(address=address_manager)
-        
-        client.close()
+        try:
+            client = DataGoKrClient()
+            data = client.getFloodByAddress(address=address_manager)
+        except Exception as e:
+            return Response({"error": "flood get failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         print(address_manager.roadAddr)
 
@@ -338,9 +362,11 @@ class MakeReportFinalView(APIView):
         # 주소 만들기
         address_manager:AddressManager = property_bundle.address.to_address_manager()
         address_manager.initialize(research=False)
-                
+        if not address_manager.is_valid():
+            return Response({"error": "유효하지 않은 주소입니다."}, status=status.HTTP_400_BAD_REQUEST)
+        
         # 건축물대장부 그냥 string으로 가져온다.
-        building_info = property_bundle.building_info.description
+        building_info = getattr(property_bundle.building_info, "description", {})  # {}를 기본
         # 전월세가분석
         avg_price:AvgPrice = property_bundle.avg_price
         price_info = AvgPriceSerializer(avg_price).data
