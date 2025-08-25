@@ -8,7 +8,7 @@ class HTTPError(Exception):
 
 # Client를 만드는 기본 클래스 구조.
 class BaseClient:
-    def __init__(self, base_url:str, timeout: float = 20.0):
+    def __init__(self, base_url:str, timeout: float = 120):
         self.base_url = base_url
         self.timeout = timeout
         

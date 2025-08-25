@@ -16,7 +16,7 @@ from urllib.parse import quote
 class DataSeoulClient(BaseClient):
     def __init__(self):
         # 오래 걸리는 작업이라 timeout을 넉넉하게 줌, 8088 포트 http 사용
-        super().__init__(base_url="http://openapi.seoul.go.kr:8088", timeout=90)
+        super().__init__(base_url="http://openapi.seoul.go.kr:8088", timeout=120)
     
     # 해당 건물 한정으로 가격을 책정한다. 후에 주변 건물의 가격을 평균내는 로직이 필요할 듯. 이건 다른 함수에 작성.
     def getPrice(
