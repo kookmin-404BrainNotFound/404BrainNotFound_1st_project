@@ -220,7 +220,6 @@ class MakePropertyRegistryView(APIView):
         summary="등기부등본 저장",
         description="등기부등본을 저장합니다.",
         parameters=[
-            MakeAvgPriceDocSerializer,
             report_id_param,
         ],
         tags=["report_danger"],
