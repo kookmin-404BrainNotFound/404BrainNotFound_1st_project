@@ -61,6 +61,10 @@ class AirCondition(models.Model):
     data = models.JSONField(default=dict)
     created = models.DateTimeField(auto_now_add=True)
 
+# 침수 데이터 저장.
+class Flood(models.Model):
+    data = models.JSONField(default=dict)
+    created = models.DateTimeField(auto_now_add=True)
 
 # 공통 묶음: 같은 주소/시세/건물정보를 한 덩어리로
 class PropertyBundle(models.Model):
@@ -75,6 +79,9 @@ class PropertyBundle(models.Model):
     property_registry = models.OneToOneField(PropertyRegistry, on_delete=models.PROTECT, related_name='bundle',
                                              null=True, blank=True)
     air_condition = models.OneToOneField(AirCondition, on_delete=models.PROTECT, related_name='bundle',
+                                         null=True, blank=True)
+
+    flood = models.OneToOneField(Flood, on_delete=models.PROTECT, related_name='bundle',
                                          null=True, blank=True)
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bundles')

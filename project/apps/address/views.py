@@ -22,9 +22,10 @@ from external.address.address_manager import AddressManager
 from .serializers import (AddressSearchSerializer, GetPriceSerializer,
                           GetPropertyRegistrySerializer, GetBuildingInfoSerializer, PropertyRegistrySerializer,
                           UserPriceSerializer, BuildingInfoSerializer, AvgPriceSerializer,
-                          AirConditionSerializer, PropertyBundleSerializer)
+                          AirConditionSerializer, PropertyBundleSerializer,
+                          FloodSerializer)
 from .models import (UserPrice, BuildingInfo, AvgPrice, PropertyRegistry,
-                     AirCondition, PropertyBundle)
+                     AirCondition, PropertyBundle, Flood)
 
 # Create your views here.
 
@@ -155,6 +156,10 @@ class PropertyRegistryViewSet(viewsets.ReadOnlyModelViewSet):
 class AirConditionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AirCondition.objects.all().order_by("-id")
     serializer_class = AirConditionSerializer    
+
+class FloodViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Flood.objects.all().order_by("-id")
+    serializer_class = FloodSerializer    
     
     
 class PropertyBundleViewSet(viewsets.ReadOnlyModelViewSet):

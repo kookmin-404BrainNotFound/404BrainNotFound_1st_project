@@ -24,10 +24,13 @@ from external.address.building_info import BuildingInfoManager
 from external.address.price import get_avg_price
 from external.address.address_manager import AddressManager
 from external.address.property_registry import get_property_registry
+from external.address.flood import getFloodByAddress
+
 from apps.address.serializers import (PropertyRegistrySerializer, AirConditionSerializer,
-                                      UserPriceSerializer, BuildingInfoSerializer, AvgPriceSerializer)
+                                      UserPriceSerializer, BuildingInfoSerializer, AvgPriceSerializer
+                                      , FloodSerializer)
 from apps.address.models import (Address, UserPrice, BuildingInfo, AvgPrice, PropertyRegistry,
-                                 AirCondition, PropertyBundle)
+                                 AirCondition, PropertyBundle, Flood)
 
 from external.client.seoul_data import DataSeoulClient
 from external.gpt.gpt_manager import *
@@ -38,8 +41,8 @@ import json
 
 report_id_param = OpenApiParameter(
     name="report_id",
-    type=OpenApiTypes.INT,                 # ✅ 타입
-    location=OpenApiParameter.PATH,        # ✅ 경로 변수
+    type=OpenApiTypes.INT,
+    location=OpenApiParameter.PATH,
     description="대상 Report ID",
     required=True,
 )
@@ -150,7 +153,6 @@ class MakeBuildingInfoView(APIView):
         # 주소 가져오기.
         address_manager:AddressManager = property_bundle.address.to_address_manager()
         address_manager.initialize(research=False)
-        
         # 건축물대장부
         info = BuildingInfoManager().makeInfo(address_manager)
         serializer = BuildingInfoSerializer(data={"description": info})
@@ -267,7 +269,6 @@ class MakeAirConditionView(APIView):
         client = DataSeoulClient()
         response = client.get_yearly_by_gu(2024, address_manager.sggNm)
 
-        print(response)
         # db에 임시 저장하기.
         serializer = AirConditionSerializer(data={"data": response})
         serializer.is_valid(raise_exception=True)
@@ -276,8 +277,40 @@ class MakeAirConditionView(APIView):
         property_bundle.air_condition = air_condition
         property_bundle.save(update_fields=["air_condition"])
         return Response(serializer.data)
-
+    
+# 침수 데이터 저장.
+class MakeFloodView(APIView):
+    @extend_schema(
+        summary="침수 데이터 저장.",
+        description="침수 데이터를 저장합니다.",
+        parameters=[report_id_param],
+        tags=["report_fit"],
+    )
+    def post(self, request, report_id):
+        try:
+            report = Report.objects.get(id=report_id)
+        except Report.DoesNotExist:
+            return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
         
+        # property_bundle 가져오기.
+        property_bundle = report.property_bundle
+
+        # 주소 가져오기.
+        address_manager:AddressManager = property_bundle.address.to_address_manager()
+        address_manager.initialize(research=False)
+
+        response = getFloodByAddress(address_manager=address_manager)
+
+        print(response)
+        # db에 임시 저장하기.
+        serializer = FloodSerializer(data={"data": response})
+        serializer.is_valid(raise_exception=True)
+        flood = serializer.save()
+
+        property_bundle.flood = flood
+        property_bundle.save(update_fields=["flood"])
+        return Response(serializer.data)
+
 # 마지막 레포트 뷰. gpt에게 맡기는 역할만 수행.
 class MakeReportFinalView(APIView):
     @extend_schema(
@@ -334,11 +367,12 @@ class MakeReportFinalView(APIView):
 
         # usertendency를 가져오기.
         user_tendency = UserTendencyReadSerializer(user.user_tendency).data
-        print(user_tendency)
 
         # 공기질 가져오기.
         air_condiion = AirConditionSerializer(property_bundle.air_condition).data
-        print(air_condiion)   
+
+        # 침수 데이터 가져오기.
+        flood = FloodSerializer(property_bundle.flood).data
         
         # gpt에 물어본다. 처음에는 파일을 제외하고, 파일까지 첨부한 후 물어본다.
         messages = []
@@ -378,7 +412,7 @@ class MakeReportFinalView(APIView):
         # 공기질 데이터 넣기.
         messages.append(create_message("user", str(air_condiion)))
         # 침수 데이터 넣기.
-        messages.append(create_message("user", ""))
+        messages.append(create_message("user", str(flood)))
         # 적합도 데이터 분석
         messages.append(create_message("user", fit_prompt))
         fit_response = ask_gpt(messages, model='gpt-4.1')

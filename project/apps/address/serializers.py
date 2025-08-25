@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from datetime import datetime
 from .models import (BuildingInfo, PropertyRegistry, AirCondition, UserPrice,
-                     AvgPrice, PropertyBundle, Address)
+                     AvgPrice, PropertyBundle, Address, Flood)
 
 
 class AddressSearchSerializer(serializers.Serializer):
@@ -84,6 +84,15 @@ class AirConditionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         return AirCondition.objects.create(**validated_data)
 
+class FloodSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Flood
+        fields = ["id", "data", "created"]
+        read_only_fields = ["id", "created"]
+        
+    def create(self, validated_data):
+        return Flood.objects.create(**validated_data)
+
 class PropertyBundleSerializer(serializers.ModelSerializer):
     address = AddressSerializer(read_only=True)
     avg_price = AvgPriceSerializer(read_only=True)
@@ -91,6 +100,7 @@ class PropertyBundleSerializer(serializers.ModelSerializer):
     user_price = UserPriceSerializer(read_only=True)
     property_registry = PropertyRegistrySerializer(read_only=True)
     air_condition = AirConditionSerializer(read_only=True)
+    flood = FloodSerializer(read_only=True)
 
     user = serializers.StringRelatedField(read_only=True)
 
@@ -98,6 +108,6 @@ class PropertyBundleSerializer(serializers.ModelSerializer):
         model = PropertyBundle
         fields = [
             "id", "address", "avg_price", "building_info", "user_price",
-            "property_registry", "air_condition", "user", "created",
+            "property_registry", "air_condition", "flood", "user", "created",
         ]
         read_only_fields = fields
