@@ -2,7 +2,8 @@ from django.core.files.base import ContentFile
 from django.http import Http404
 from django.db import transaction
 from django.utils.decorators import method_decorator
-from django.db.models import OuterRef, Subquery
+from django.db.models import OuterRef, Subquery, F, Value
+from django.db.models.functions import Coalesce
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -569,6 +570,11 @@ class ReportListByUserView(generics.ListAPIView):
     def get_queryset(self):
         user_id = self.kwargs["user_id"]
 
+        address_sq = (Address.objects
+                      .filter(bundle=OuterRef("property_bundle"))
+                      .order_by("-id")
+                    )
+
         danger_sq = (ReportData.objects
                      .filter(report_id=OuterRef("pk"), type="danger")
                      .order_by("-created")
@@ -587,6 +593,7 @@ class ReportListByUserView(generics.ListAPIView):
         qs = (
             Report.objects
             .filter(property_bundle__user_id=user_id)
+            .select_related("property_bundle__address")
             .annotate(
                 danger_score=Subquery(danger_sq),
                 fit_score=Subquery(fit_sq),

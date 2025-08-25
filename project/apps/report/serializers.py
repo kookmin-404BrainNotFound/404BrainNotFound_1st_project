@@ -40,6 +40,9 @@ class ReportDataSerializer(serializers.ModelSerializer):
 
 class ReportSummarySerializer(serializers.ModelSerializer):
     # Subquery로 annotate된 값들을 그대로 직렬화
+    road_address = serializers.CharField(
+        source="property_bundle.address.road_address", read_only=True
+    )
     danger_score = serializers.IntegerField(read_only=True, allow_null=True)
     fit_score = serializers.IntegerField(read_only=True, allow_null=True)
     security_deposit = serializers.IntegerField(read_only=True, allow_null=True)
@@ -50,6 +53,7 @@ class ReportSummarySerializer(serializers.ModelSerializer):
         model = Report
         fields = [
             "id",
+            "road_address",
             "created_at",
             "status",
             "danger_score",
